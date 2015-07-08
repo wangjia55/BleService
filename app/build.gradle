@@ -1,4 +1,11 @@
+import com.android.build.gradle.tasks.PackageApplication
+
 apply plugin: 'com.android.application'
+
+repositories {
+    mavenCentral()
+}
+
 
 android {
     compileSdkVersion 22
@@ -17,9 +24,36 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    lintOptions {
+        abortOnError false
+    }
+
+    packagingOptions {
+        exclude 'assets/sapi_cert.cer'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE.txt'
+    }
+
+    task copyNativeLibs(type: Copy) {
+        from(new File(project(':app').getProjectDir(), 'libs')) { include '**/*.so' }
+        into new File(buildDir, 'native-libs')
+    }
+
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn copyNativeLibs
+    }
+
+    clean.dependsOn 'cleanCopyNativeLibs'
+
+    tasks.withType(PackageApplication) {
+        pkgTask ->
+            pkgTask.jniFolders = new HashSet<File>()
+            pkgTask.jniFolders.add(new File(buildDir, 'native-libs'))
+    }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.2.0'
+    compile project(':libraries:ble')
 }
