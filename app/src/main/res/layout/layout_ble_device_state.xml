@@ -121,7 +121,7 @@
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:onClick="stopService"
-            android:text="删除"/>
+            android:text="解绑"/>
 
         <Button
             android:id="@+id/button_edit"

@@ -7,6 +7,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.jacob.ble.R;
+import com.jacob.ble.bean.BleDevice;
 
 public class BleStatusView extends LinearLayout implements View.OnClickListener {
 
@@ -14,6 +15,8 @@ public class BleStatusView extends LinearLayout implements View.OnClickListener 
     private TextView mTextViewImsi;
     private TextView mTextViewName;
     private TextView mTextViewState;
+    private BleDevice mBleDevice;
+    private OnBleMenuListener mListener;
 
     public BleStatusView(Context context) {
         this(context, null);
@@ -39,13 +42,37 @@ public class BleStatusView extends LinearLayout implements View.OnClickListener 
 
     @Override
     public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.button_bind:
-                break;
-            case R.id.button_unbind:
-                break;
-            case R.id.button_edit:
-                break;
+        if (mListener != null) {
+            switch (view.getId()) {
+                case R.id.button_bind:
+                    mListener.onBind(mBleDevice);
+                    break;
+                case R.id.button_unbind:
+                    mListener.unBind(mBleDevice);
+                    break;
+                case R.id.button_edit:
+                    mListener.onEdit(mBleDevice);
+                    break;
+            }
         }
+    }
+
+    public void setBleDevice(BleDevice bleDevice) {
+        mBleDevice = bleDevice;
+        mTextViewImei.setText(bleDevice.getImei());
+        mTextViewImsi.setText(bleDevice.getImsi());
+        mTextViewName.setText(bleDevice.getName());
+    }
+
+    public interface OnBleMenuListener {
+        void onBind(BleDevice device);
+
+        void unBind(BleDevice device);
+
+        void onEdit(BleDevice device);
+    }
+
+    public void setOnBleMenuListener(OnBleMenuListener listener) {
+        mListener = listener;
     }
 }
