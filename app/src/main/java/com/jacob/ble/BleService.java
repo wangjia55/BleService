@@ -1,5 +1,6 @@
 package com.jacob.ble;
 
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
@@ -46,6 +47,7 @@ public class BleService extends Service {
                 .setTicker("标题1")
                 .setContentTitle("儿童定位宝")
                 .setContentText("正在蓝牙守护中")
+                .setDefaults(Notification.DEFAULT_VIBRATE)
                 .setAutoCancel(false);
         Intent intent1 = new Intent(this,MainActivity.class);
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
