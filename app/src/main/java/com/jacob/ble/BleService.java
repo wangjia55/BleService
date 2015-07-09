@@ -9,6 +9,9 @@ import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 
+import com.jacob.ble.ui.MainActivity;
+import com.jacob.ble.utils.LogUtils;
+
 /**
  * Package : com.jacob.ble
  * Author : jacob
@@ -33,13 +36,8 @@ public class BleService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         LogUtils.LOGE(TAG,"onStartCommand");
         flags = START_REDELIVER_INTENT;
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                LogUtils.LOGE(TAG, "----service is running----");
-                mHandler.postDelayed(this, 5000);
-            }
-        }, 5000);
+        mHandler.removeCallbacks(runnable);
+        mHandler.postDelayed(runnable, 5000);
 
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
@@ -58,6 +56,14 @@ public class BleService extends Service {
         startForeground(10, builder.build());
         return super.onStartCommand(intent, flags, startId);
     }
+
+    private Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            LogUtils.LOGE(TAG, "----service is running----"+Thread.currentThread().getId());
+            mHandler.postDelayed(runnable, 5000);
+        }
+    } ;
 
 
     @Override

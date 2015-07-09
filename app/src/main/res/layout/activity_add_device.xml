@@ -1,0 +1,43 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="15dp">
+
+    <EditText
+        android:id="@+id/edit_text_imei"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_margin="3dp"
+        android:hint="IMEI"
+        android:textSize="15sp"/>
+
+
+    <EditText
+        android:id="@+id/edit_text_imsi"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_margin="3dp"
+        android:hint="IMSI"
+        android:textSize="15sp"/>
+
+    <EditText
+        android:id="@+id/edit_text_name"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_margin="3dp"
+        android:hint="Name"
+        android:textSize="15sp"/>
+
+    <Button
+        android:id="@+id/button_add_device"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_margin="3dp"
+        android:onClick="startService"
+        android:text="保存"/>
+
+</LinearLayout>
+
+

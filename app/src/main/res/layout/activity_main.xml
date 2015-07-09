@@ -1,25 +1,51 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:padding="15dp"
-              android:orientation="vertical">
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="15dp">
 
-    <TextView
+    <LinearLayout
+        android:id="@+id/linear_service"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/hello_world"/>
+        android:orientation="vertical">
 
-    <Button
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:onClick="startService"
+            android:text="开启蓝牙服务"/>
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:onClick="stopService"
+            android:text="关闭蓝牙服务"/>
+
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:onClick="addDevice"
+            android:text="添加设备"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#ff5d9cff"/>
+    </LinearLayout>
+
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:text="Start Service"
-        android:onClick="startService"/>
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_below="@+id/linear_service">
 
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:text="Stop Service"
-        android:onClick="stopService"/>
+        <LinearLayout
+            android:id="@+id/linear_ble_device"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"/>
 
-
-</LinearLayout>
+    </ScrollView>
+</RelativeLayout>

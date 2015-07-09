@@ -1,4 +1,4 @@
-package com.jacob.ble;
+package com.jacob.ble.utils;
 
 
 /*
@@ -24,6 +24,8 @@ package com.jacob.ble;
 
 import android.os.Environment;
 import android.util.Log;
+
+import com.jacob.ble.BuildConfig;
 
 import java.io.File;
 import java.io.FileWriter;

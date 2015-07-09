@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
+import com.jacob.ble.utils.LogUtils;
+
 /**
  * Package : com.jacob.ble
  * Author : jacob
