@@ -16,6 +16,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service android:name=".BleService" android:enabled="true">
+            <intent-filter android:priority="1000">
+                <action android:name="com.jacob.ble.service"/>
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>
