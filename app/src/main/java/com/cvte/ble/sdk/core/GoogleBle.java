@@ -14,7 +14,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -22,12 +21,10 @@ import android.os.Message;
 import com.cvte.ble.sdk.entity.BleConnectInfo;
 import com.cvte.ble.sdk.listener.BleConnectCallback;
 import com.cvte.ble.sdk.listener.BleRssiCallback;
-import com.cvte.ble.sdk.listener.BleScanCallback;
 import com.cvte.ble.sdk.listener.BleWriteCallback;
 import com.cvte.ble.sdk.states.BluetoothState;
 import com.cvte.ble.sdk.states.ConnectState;
 import com.cvte.ble.sdk.states.ErrorStatus;
-import com.cvte.ble.sdk.states.ScanState;
 import com.cvte.ble.sdk.utils.BleLogUtils;
 
 import java.util.Queue;
@@ -37,10 +34,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Created by jianhaohong on 10/22/14.
  */
 @TargetApi(18)
-public class GoogleBle implements BluetoothAdapter.LeScanCallback {
+public class GoogleBle {
 
     private static final String TAG = "google gatt";
-    private static final int MSG_SCAN_RESULT = 0x11223;
     private static final int MSG_DATA_RECEIVE = 0x11224;
     private static final int MSG_CONNECTION_CHECK = 0x11225;
     private static final int MSG_CONNECT_ERROR = 0x11226;
@@ -56,10 +52,8 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
     private Context mContext;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothManager mBluetoothManager;
-    private ScanState mScanState = ScanState.ScanStop;
     private ConnectState mConnectState = ConnectState.Disconnect;
     private BluetoothState mBluetoothState = BluetoothState.Bluetooth_Off;
-    private BleScanCallback mBleScanCallback;
     private BleConnectCallback mBleConnectCallback;
     private BleRssiCallback mBleRssiCallback;
     private BleWriteCallback mBleWriteCallback;
@@ -70,6 +64,19 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
     private BluetoothDevice mBluetoothDevice;
     private final Queue<byte[]> sWriteQueue = new ConcurrentLinkedQueue<byte[]>();
     private boolean sIsWriting = false;
+
+    public GoogleBle(Context context) {
+        BleLogUtils.LOGD(TAG, "google ble init");
+        mContext = context;
+        if (mBluetoothManager == null) {
+            mBluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
+            mBluetoothAdapter = mBluetoothManager.getAdapter();
+            mContext.registerReceiver(mBlueStateBroadcastReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+            if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled()) {
+                mBluetoothState = BluetoothState.Bluetooth_On;
+            }
+        }
+    }
 
 
     private BroadcastReceiver mBlueStateBroadcastReceiver = new BroadcastReceiver() {
@@ -92,17 +99,11 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
     };
 
     private void notifyBluetoothOff() {
-        if (mScanState == ScanState.Scanning) {
-            stopScan();
-            if (mBleScanCallback != null) {
-                mBleScanCallback.onError(ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open");
-            }
-        }
 
         if (mConnectState != ConnectState.Disconnect) {
             disconnect();
             if (mBleConnectCallback != null) {
-                mBleConnectCallback.onError(ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open");
+                mBleConnectCallback.onConnectError(ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open", mBleConnectInfo);
             }
         }
     }
@@ -111,9 +112,6 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_SCAN_RESULT:
-                    callOnScanCallback(msg);
-                    break;
                 case MSG_CONNECTION_CHECK:
                     connectFail();
                     break;
@@ -157,7 +155,7 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
 
     private void callOnConnectSuccess() {
         if (mBleConnectCallback != null) {
-            mBleConnectCallback.onConnectSuccess(mBluetoothDevice);
+            mBleConnectCallback.onConnectSuccess(mBluetoothDevice, mBleConnectInfo);
         }
     }
 
@@ -166,25 +164,16 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
         int error = bundle.getInt(PARAM_ERROR_CODE);
         String reason = bundle.getString(PARAM_ERROR_REASON);
         if (mBleConnectCallback != null) {
-            mBleConnectCallback.onError(error, reason);
+            mBleConnectCallback.onConnectError(error, reason, mBleConnectInfo);
         }
     }
 
-    private void callOnScanCallback(Message msg) {
-        Bundle bundle = msg.getData();
-        BluetoothDevice device = bundle.getParcelable(PARAM_DEVICE);
-        int rssi = bundle.getInt(PARAM_RSSI);
-        byte[] bytes = bundle.getByteArray(PARAM_BYTE);
-        if (mBleScanCallback != null && device != null) {
-            mBleScanCallback.onLeScan(device, rssi, bytes);
-        }
-    }
 
     private void connectFail() {
         if (mConnectState != ConnectState.Connected) {
             disconnect();
             if (mBleConnectCallback != null) {
-                mBleConnectCallback.onError(ErrorStatus.CONNECT_TIME_OUT, "connect time out");
+                mBleConnectCallback.onConnectError(ErrorStatus.CONNECT_TIME_OUT, "connect time out", mBleConnectInfo);
             }
         }
     }
@@ -300,62 +289,23 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
     }
 
 
-    public void init(Context context) {
-        BleLogUtils.LOGD(TAG, "google ble init");
-        mContext = context;
-        if (mBluetoothManager == null) {
-            mBluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
-            mBluetoothAdapter = mBluetoothManager.getAdapter();
-            mContext.registerReceiver(mBlueStateBroadcastReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
-            if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled()) {
-                mBluetoothState = BluetoothState.Bluetooth_On;
-            }
-        }
-
-    }
-
     public void dispose() {
-        stopScan();
         disconnect();
         mContext.unregisterReceiver(mBlueStateBroadcastReceiver);
         mBluetoothManager = null;
         mBluetoothGatt = null;
-        mScanState = ScanState.ScanStop;
         mConnectState = ConnectState.Disconnect;
     }
 
-    public void startScan(BleScanCallback bleScanCallback) {
-        if (mBluetoothState == BluetoothState.Bluetooth_Off) {
-            if (bleScanCallback != null) {
-                bleScanCallback.onError(ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open");
-            }
-            return;
-        }
-        if (mScanState == ScanState.Scanning) {
-            if (bleScanCallback != null) {
-                bleScanCallback.onError(ErrorStatus.ALREADY_SCAN, "ble is current scanning");
-            }
-            return;
-        } else {
-            mBleScanCallback = bleScanCallback;
-            mScanState = ScanState.Scanning;
-            mBluetoothAdapter.startLeScan(this);
-            BleLogUtils.LOGD("bleManager", "real start scan");
-        }
-    }
-
-    public void stopScan() {
-        mScanState = ScanState.ScanStop;
-        mBluetoothAdapter.stopLeScan(this);
-    }
-
-    public void connect(BluetoothDevice device, BleConnectInfo bleConnectInfo, boolean isAuto) {
+    public void connect(BluetoothDevice device, BleConnectInfo bleConnectInfo,
+                        BleConnectCallback bleConnectCallback, boolean isAuto) {
+        mBleConnectCallback = bleConnectCallback;
         mBluetoothDevice = device;
         mBleConnectInfo = bleConnectInfo;
         if (mBluetoothState == BluetoothState.Bluetooth_Off) {
             disconnect();
             if (mBleConnectCallback != null) {
-                mBleConnectCallback.onError(ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open");
+                mBleConnectCallback.onConnectError(ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open", mBleConnectInfo);
             }
             return;
         }
@@ -363,11 +313,11 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
         if (mConnectState != ConnectState.Disconnect) {
             if (mBleConnectCallback != null) {
                 if (mConnectState == ConnectState.Connecting) {
-                    mBleConnectCallback.onError(ErrorStatus.ALREADY_CONNECTING, "current state is connecting");
+                    mBleConnectCallback.onConnectError(ErrorStatus.ALREADY_CONNECTING, "current state is connecting", mBleConnectInfo);
                 }
 
                 if (mConnectState == ConnectState.Connected) {
-                    mBleConnectCallback.onError(ErrorStatus.ALREADY_CONNECTED, "current state is connecting");
+                    mBleConnectCallback.onConnectError(ErrorStatus.ALREADY_CONNECTED, "current state is connecting", mBleConnectInfo);
                 }
             }
             return;
@@ -385,7 +335,6 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
             mBluetoothGatt.close();
             mBluetoothGatt = null;
         }
-        mScanState = ScanState.ScanStop;
         mConnectState = ConnectState.Disconnect;
     }
 
@@ -474,30 +423,6 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
         }
     }
 
-    public boolean isBleSupported() {
-        if (!mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-
-    @Override
-    public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-        Message message = Message.obtain();
-        message.what = MSG_SCAN_RESULT;
-        Bundle bundle = new Bundle();
-        bundle.putParcelable(PARAM_DEVICE, device);
-        bundle.putInt(PARAM_RSSI, rssi);
-        bundle.putByteArray(PARAM_BYTE, scanRecord);
-        message.setData(bundle);
-        mHandler.sendMessage(message);
-    }
-
-    public ScanState getScanState() {
-        return mScanState;
-    }
 
     public ConnectState getConnectState() {
         return mConnectState;

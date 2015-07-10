@@ -9,5 +9,5 @@ package com.cvte.ble.sdk.states;
 public enum ConnectState {
     Connecting,
     Disconnect,
-    Connected;
+    Connected
 }

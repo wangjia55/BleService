@@ -2,15 +2,17 @@ package com.cvte.ble.sdk.listener;
 
 import android.bluetooth.BluetoothDevice;
 
+import com.cvte.ble.sdk.entity.BleConnectInfo;
+
 /**
  * Created by jianhaohong on 10/23/14.
  */
 public interface BleConnectCallback {
 
-    public void onConnectSuccess(BluetoothDevice bluetoothDevice);
+     void onConnectSuccess(BluetoothDevice bluetoothDevice,BleConnectInfo bleConnectInfo);
 
-    public void onDeviceFound(BluetoothDevice bluetoothDevice);
+     void onDeviceFound(BluetoothDevice bluetoothDevice,BleConnectInfo bleConnectInfo);
 
-    public void onError(int errorCode, String reason);
+     void onConnectError(int errorCode, String reason,BleConnectInfo bleConnectInfo);
 
 }

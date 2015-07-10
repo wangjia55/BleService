@@ -4,11 +4,11 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 
+import com.cvte.ble.sdk.core.BleSdkManager;
 import com.jacob.ble.ui.MainActivity;
 import com.jacob.ble.utils.LogUtils;
 
@@ -20,7 +20,7 @@ import com.jacob.ble.utils.LogUtils;
  */
 public class BleService extends Service {
     public static final String TAG = "BleService";
-    private Handler mHandler = new Handler();
+    private BleSdkManager bleSdkManager = BleSdkManager.newInstance(this);
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -35,14 +35,19 @@ public class BleService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         LogUtils.LOGE(TAG,"onStartCommand");
+        bleSdkManager.init();
+        bleSdkManager.registerBleStateReceiver();
+
         flags = START_REDELIVER_INTENT;
-        mHandler.removeCallbacks(runnable);
-        mHandler.postDelayed(runnable, 5000);
+
+        startForeground(10, getNotification());
+        return super.onStartCommand(intent, flags, startId);
+    }
 
 
+    private Notification getNotification(){
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setTicker("标题1")
                 .setContentTitle("儿童定位宝")
                 .setContentText("正在蓝牙守护中")
                 .setDefaults(Notification.DEFAULT_VIBRATE)
@@ -53,17 +58,8 @@ public class BleService extends Service {
         stackBuilder.addNextIntent(intent1);
         PendingIntent pendingIntent = stackBuilder.getPendingIntent(0,PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(pendingIntent);
-        startForeground(10, builder.build());
-        return super.onStartCommand(intent, flags, startId);
+        return  builder.build();
     }
-
-    private Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            LogUtils.LOGE(TAG, "----service is running----"+Thread.currentThread().getId());
-            mHandler.postDelayed(runnable, 5000);
-        }
-    } ;
 
 
     @Override
@@ -71,7 +67,7 @@ public class BleService extends Service {
         super.onDestroy();
         LogUtils.LOGE(TAG, "onDestroy");
         stopForeground(true);
-
+        bleSdkManager.unregisterBleStateReceiver();
         Intent service = new Intent(this, BleService.class);
         this.startService(service);
     }

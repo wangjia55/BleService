@@ -4,7 +4,7 @@ package com.cvte.ble.sdk.listener;
  * Created by jianhaohong on 10/28/14.
  */
 public interface BleWriteCallback {
-    public void onWriteSuccess(byte[] bytes);
+     void onWriteSuccess(byte[] bytes);
 
-    public void onWriteFail(int errorCode, String reason);
+     void onWriteFail(int errorCode, String reason);
 }

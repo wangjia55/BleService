@@ -2,7 +2,7 @@ package com.cvte.ble.sdk.entity;
 
 import android.content.Context;
 
-import com.cvte.ble.sdk.core.BleManager;
+import com.cvte.ble.sdk.core.GoogleBle;
 import com.cvte.ble.sdk.states.ConnectState;
 
 /**
@@ -14,14 +14,14 @@ import com.cvte.ble.sdk.states.ConnectState;
 public class BleConnectDevice {
     private String singleTag;
 
-    private BleManager bleManager;
+    private GoogleBle googleBle;
 
     private BleConnectInfo bleConnectInfo;
 
 
     public BleConnectDevice(Context context, BleConnectInfo bleConnectInfo) {
         singleTag = bleConnectInfo.getSingleTag();
-        bleManager = new BleManager(context);
+        googleBle = new GoogleBle(context);
         this.bleConnectInfo = bleConnectInfo;
     }
 
@@ -29,8 +29,8 @@ public class BleConnectDevice {
         return singleTag;
     }
 
-    public BleManager getBleManager() {
-        return bleManager;
+    public GoogleBle getGoogleBle() {
+        return googleBle;
     }
 
     public BleConnectInfo getBleConnectInfo() {
@@ -38,6 +38,6 @@ public class BleConnectDevice {
     }
 
     public ConnectState getConnectState() {
-        return bleManager.getCurrentConnectState();
+        return googleBle.getConnectState();
     }
 }

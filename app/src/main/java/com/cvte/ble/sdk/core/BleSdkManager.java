@@ -1,17 +1,29 @@
 package com.cvte.ble.sdk.core;
 
+import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
 
 import com.cvte.ble.sdk.entity.BleConnectDevice;
 import com.cvte.ble.sdk.entity.BleConnectInfo;
+import com.cvte.ble.sdk.listener.BleConnectCallback;
 import com.cvte.ble.sdk.listener.BleOperationListener;
 import com.cvte.ble.sdk.states.BluetoothState;
+import com.cvte.ble.sdk.states.ConnectState;
 import com.cvte.ble.sdk.states.ScanState;
-import com.cvte.ble.sdk.utils.BleUtils;
+import com.cvte.ble.sdk.utils.BleLogUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Package : com.ble.sdk.core
@@ -20,16 +32,19 @@ import com.cvte.ble.sdk.utils.BleUtils;
  * Description : 这个类是整个sdk对外唯一的入口类
  */
 public class BleSdkManager implements BleOperationListener {
-
-    private Context mContext;
-
-    private ScanState mScanState = ScanState.ScanStop;
-
-    private BluetoothState mBluetoothState = BluetoothState.Bluetooth_Off;
-
-
+    public static final String TAG = "BleSdkManager";
 
     private static BleSdkManager sInstance = null;
+    private ScanState mScanState = ScanState.ScanStop;
+    private BluetoothState mBluetoothState = BluetoothState.Bluetooth_Off;
+    private Map<String, BleConnectDevice> mAllDeviceMap = new HashMap<>();
+
+    private Context mContext;
+    private static Handler sHandler;
+    private static HandlerThread sHandlerThread = new HandlerThread("BleSDKThread");
+    private BluetoothManager mBluetoothManager;
+    private BluetoothAdapter mBluetoothAdapter;
+
 
     private BleSdkManager(Context context) {
         mContext = context;
@@ -38,6 +53,8 @@ public class BleSdkManager implements BleOperationListener {
     public static BleSdkManager newInstance(Context context) {
         if (sInstance == null) {
             sInstance = new BleSdkManager(context);
+            sHandlerThread.start();
+            sHandler = new Handler(sHandlerThread.getLooper());
         }
         return sInstance;
     }
@@ -49,9 +66,12 @@ public class BleSdkManager implements BleOperationListener {
             int blueState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0);
             switch (blueState) {
                 case BluetoothAdapter.STATE_ON:
+                    BleLogUtils.LOGE(TAG,"Bluetooth_On");
                     mBluetoothState = BluetoothState.Bluetooth_On;
                     break;
                 case BluetoothAdapter.STATE_OFF:
+                    BleLogUtils.LOGE(TAG,"Bluetooth_Off");
+                    mScanState = ScanState.ScanStop;
                     mBluetoothState = BluetoothState.Bluetooth_Off;
                     break;
                 default:
@@ -75,29 +95,102 @@ public class BleSdkManager implements BleOperationListener {
     }
 
 
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    @Override
+    public void init() {
+        if (mBluetoothManager == null) {
+            mBluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
+            mBluetoothAdapter = mBluetoothManager.getAdapter();
+            if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled()) {
+                mBluetoothState = BluetoothState.Bluetooth_On;
+            }else {
+                mBluetoothState = BluetoothState.Bluetooth_Off;
+            }
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     public void startScan() {
+        BleLogUtils.LOGE(TAG,"startScan");
         mScanState = ScanState.Scanning;
+        if (mBluetoothAdapter != null &&
+                mBluetoothState == BluetoothState.Bluetooth_On) {
+            mBluetoothAdapter.startLeScan(mBleScanCallback);
+        }
     }
 
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     public void stopScan() {
+        BleLogUtils.LOGE(TAG,"stopScan");
         mScanState = ScanState.ScanStop;
+        if (mBluetoothAdapter != null) {
+            mBluetoothAdapter.stopLeScan(mBleScanCallback);
+        }
     }
 
     @Override
-    public boolean isSupportBle() {
-        return BleUtils.isBleSupported(mContext);
+    public void connectBleDevice(BleConnectInfo bleConnectInfo) {
+        BleLogUtils.LOGE(TAG,"connectBleDevice");
+        BleConnectDevice bleConnectDevice = new BleConnectDevice(mContext, bleConnectInfo);
+        mAllDeviceMap.put(bleConnectDevice.getSingleTag(), bleConnectDevice);
+        sHandler.removeCallbacks(mScanDeviceRunnable);
+        sHandler.post(mScanDeviceRunnable);
     }
 
     @Override
-    public void openBluetooth() {
-
+    public void disConnectBleDevice(BleConnectInfo bleConnectInfo) {
+        BleLogUtils.LOGE(TAG,"disConnectBleDevice");
+        mAllDeviceMap.remove(bleConnectInfo.getSingleTag());
     }
 
-    @Override
-    public void closeBluetooth() {
-    }
+    private BluetoothAdapter.LeScanCallback mBleScanCallback = new BluetoothAdapter.LeScanCallback() {
+        @Override
+        public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
+            BleLogUtils.LOGD("device find ", " " + device.getName());
+            Set<String> keySet = mAllDeviceMap.keySet();
+            for (String tag : keySet) {
+                BleConnectDevice bleConnectDevice  = mAllDeviceMap.get(tag);
+                if (bleConnectDevice.getConnectState() == ConnectState.Disconnect
+                        && bleConnectDevice.getBleConnectInfo().shouldConnectDevice(device,scanRecord)){
+                    mBleConnectCallBack.onDeviceFound(device,bleConnectDevice.getBleConnectInfo());
+                    bleConnectDevice.getGoogleBle().connect(device, bleConnectDevice.getBleConnectInfo(),
+                            mBleConnectCallBack,false);
+                    return;
+                }
+            }
+        }
+
+    };
+
+    private BleConnectCallback mBleConnectCallBack = new BleConnectCallback() {
+        @Override
+        public void onConnectSuccess(BluetoothDevice bluetoothDevice, BleConnectInfo bleConnectInfo) {
+            BleLogUtils.LOGE(TAG,"onConnectSuccess--:"+bleConnectInfo.getSingleTag());
+        }
+
+        @Override
+        public void onDeviceFound(BluetoothDevice bluetoothDevice, BleConnectInfo bleConnectInfo) {
+            BleLogUtils.LOGE(TAG,"onDeviceFound--:"+bleConnectInfo.getSingleTag());
+        }
+
+        @Override
+        public void onConnectError(int errorCode, String reason, BleConnectInfo bleConnectInfo) {
+            BleLogUtils.LOGE(TAG,"onConnectError--:"+bleConnectInfo.getSingleTag());
+        }
+
+    };
+
+
+    private Runnable mScanDeviceRunnable = new Runnable() {
+        @Override
+        public void run() {
+            stopScan();
+            startScan();
+            sHandler.postDelayed(mScanDeviceRunnable,12*1000);
+        }
+    };
 
     @Override
     public BluetoothState getBluetoothState() {
@@ -108,18 +201,5 @@ public class BleSdkManager implements BleOperationListener {
     public ScanState getScanState() {
         return mScanState;
     }
-
-    @Override
-    public void connectBleDevice(BleConnectInfo bleConnectInfo) {
-        BleConnectDevice bleConnectDevice = new BleConnectDevice(mContext,bleConnectInfo);
-
-
-    }
-
-    @Override
-    public void disConnectBleDevice(BleConnectInfo bleConnectInfo) {
-
-    }
-
 
 }

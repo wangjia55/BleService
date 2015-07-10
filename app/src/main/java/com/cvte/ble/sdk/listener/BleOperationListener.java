@@ -12,15 +12,11 @@ import com.cvte.ble.sdk.states.ScanState;
  */
 public interface BleOperationListener {
 
+    void init();
+
     void startScan();
 
     void stopScan();
-
-    boolean isSupportBle();
-
-    void openBluetooth();
-
-    void closeBluetooth();
 
     BluetoothState getBluetoothState();
 
