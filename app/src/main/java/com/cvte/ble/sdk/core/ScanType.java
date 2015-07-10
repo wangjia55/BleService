@@ -1,4 +1,4 @@
-package com.cvte.ble.logic;
+package com.cvte.ble.sdk.core;
 
 /**
  * Created by jianhaohong on 10/28/14.

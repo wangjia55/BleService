@@ -7,7 +7,8 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 
-import com.cvte.ble.core.BluetoothState;
+import com.cvte.ble.sdk.states.BluetoothState;
+
 
 /**
  * Package : com.ble.sdk.core

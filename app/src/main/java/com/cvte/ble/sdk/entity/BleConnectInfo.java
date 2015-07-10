@@ -11,6 +11,7 @@ import java.util.UUID;
  * Description : 这个类是用来xxx
  */
 public abstract class BleConnectInfo {
+    public abstract String getSingleTag();
 
     public abstract UUID getWriteCharacteristicUUID();
 

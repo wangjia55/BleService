@@ -1,4 +1,4 @@
-package com.cvte.ble.logic;
+package com.cvte.ble.sdk.utils;
 
 import java.util.Arrays;
 

@@ -1,4 +1,4 @@
-package com.cvte.ble.core;
+package com.cvte.ble.sdk.listener;
 
 /**
  * Created by jianhaohong on 10/28/14.

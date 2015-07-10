@@ -1,4 +1,4 @@
-package com.cvte.ble.core;
+package com.cvte.ble.sdk.core;
 
 import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
@@ -19,7 +19,16 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 
-import com.cvte.ble.utils.LogUtils;
+import com.cvte.ble.sdk.entity.BleConnectInfo;
+import com.cvte.ble.sdk.listener.BleConnectCallback;
+import com.cvte.ble.sdk.listener.BleRssiCallback;
+import com.cvte.ble.sdk.listener.BleScanCallback;
+import com.cvte.ble.sdk.listener.BleWriteCallback;
+import com.cvte.ble.sdk.states.BluetoothState;
+import com.cvte.ble.sdk.states.ConnectState;
+import com.cvte.ble.sdk.states.ErrorStatus;
+import com.cvte.ble.sdk.states.ScanState;
+import com.cvte.ble.sdk.utils.BleLogUtils;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -192,12 +201,12 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            LogUtils.LOGD(TAG, "connection state change " + "gatt status " + status + "bluetoothProfile new State " + newState);
+            BleLogUtils.LOGD(TAG, "connection state change " + "gatt status " + status + "bluetoothProfile new State " + newState);
             if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
-                LogUtils.LOGD(TAG, "connected to GATT server and discovery service");
+                BleLogUtils.LOGD(TAG, "connected to GATT server and discovery service");
                 mBluetoothGatt.discoverServices();
             } else {
-                LogUtils.LOGD(TAG, "connection state change disconnect" + "gatt status " + status + "bluetoothProfile new State " + newState);
+                BleLogUtils.LOGD(TAG, "connection state change disconnect" + "gatt status " + status + "bluetoothProfile new State " + newState);
                 disconnect();
                 mHandler.removeMessages(MSG_CONNECTION_CHECK);
                 sendConnectErrorMessage(ErrorStatus.CONNECT_STATE_FAIL, "fail at onConnectionStateChange status " + status + " newState " + newState);
@@ -209,7 +218,7 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 BluetoothGattService service = gatt.getService(mBleConnectInfo.getServiceUUID());
                 if (service != null) {
-                    LogUtils.LOGD(TAG, "service discovery ");
+                    BleLogUtils.LOGD(TAG, "service discovery ");
                     if (mBleConnectInfo.getReadCharacteristicUUID() != null) {
                         mReadCharacteristic = service.getCharacteristic(mBleConnectInfo.getReadCharacteristicUUID());
                         setCharacteristicNotification(mReadCharacteristic);
@@ -223,7 +232,7 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
                 sendConnectSuccessMessage();
 
             } else if (status == BluetoothGatt.GATT_FAILURE) {
-                LogUtils.LOGD(TAG, "onServicesDiscovered fail: " + status);
+                BleLogUtils.LOGD(TAG, "onServicesDiscovered fail: " + status);
                 disconnect();
                 mHandler.removeMessages(MSG_CONNECTION_CHECK);
                 sendConnectErrorMessage(ErrorStatus.CONNECT_STATE_FAIL, "fail at onServicesDiscovered status " + status);
@@ -234,7 +243,7 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            LogUtils.LOGD(TAG, "onCharacteristicWrite: " + status);
+            BleLogUtils.LOGD(TAG, "onCharacteristicWrite: " + status);
             sIsWriting = false;
             nextWrite();
         }
@@ -242,7 +251,7 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
-            LogUtils.LOGD(TAG, "----------onCharacteristicChanged------------");
+            BleLogUtils.LOGD(TAG, "----------onCharacteristicChanged------------");
             sendRawData(characteristic.getValue());
         }
 
@@ -292,7 +301,7 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
 
 
     public void init(Context context) {
-        LogUtils.LOGD(TAG, "google ble init");
+        BleLogUtils.LOGD(TAG, "google ble init");
         mContext = context;
         if (mBluetoothManager == null) {
             mBluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
@@ -331,7 +340,7 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
             mBleScanCallback = bleScanCallback;
             mScanState = ScanState.Scanning;
             mBluetoothAdapter.startLeScan(this);
-            LogUtils.LOGD("bleManager", "real start scan");
+            BleLogUtils.LOGD("bleManager", "real start scan");
         }
     }
 
@@ -363,7 +372,7 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
             }
             return;
         }
-        LogUtils.LOGD("bleManager", "real connect");
+        BleLogUtils.LOGD("bleManager", "real connect");
 
         mBluetoothGatt = mBluetoothDevice.connectGatt(mContext, isAuto, mGattCallback);
         mConnectState = ConnectState.Connecting;
@@ -450,12 +459,12 @@ public class GoogleBle implements BluetoothAdapter.LeScanCallback {
         if (mBluetoothGatt != null && mWriteCharacteristic != null) {
             mWriteCharacteristic.setValue(bytes);
             boolean success = mBluetoothGatt.writeCharacteristic(mWriteCharacteristic);
-            LogUtils.LOGD(TAG, "success write:" + success);
+            BleLogUtils.LOGD(TAG, "success write:" + success);
         } else {
             if (mBleWriteCallback != null) {
                 mBleWriteCallback.onWriteFail(ErrorStatus.GATT_NULL, "bluetooth gatt is null or write characteristic is null");
             }
-            LogUtils.LOGD(TAG, "write date error. connected state: ");
+            BleLogUtils.LOGD(TAG, "write date error. connected state: ");
         }
     }
 

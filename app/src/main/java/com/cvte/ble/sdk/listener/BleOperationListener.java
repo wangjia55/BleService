@@ -1,6 +1,8 @@
 package com.cvte.ble.sdk.listener;
 
-import com.cvte.ble.sdk.entity.BleConnectDevice;
+import com.cvte.ble.sdk.entity.BleConnectInfo;
+import com.cvte.ble.sdk.states.BluetoothState;
+import com.cvte.ble.sdk.states.ScanState;
 
 /**
  * Package : com.cvte.ble.sdk.listener
@@ -20,11 +22,15 @@ public interface BleOperationListener {
 
     void closeBluetooth();
 
+    BluetoothState getBluetoothState();
+
+    ScanState getScanState();
+
     void registerBleStateReceiver() ;
 
     void unregisterBleStateReceiver() ;
 
-    void connectBleDevice(BleConnectDevice connectDevice);
+    void connectBleDevice(BleConnectInfo bleConnectInfo);
 
-    void disConnectBleDevice(BleConnectDevice connectDevice);
+    void disConnectBleDevice(BleConnectInfo bleConnectInfo);
 }

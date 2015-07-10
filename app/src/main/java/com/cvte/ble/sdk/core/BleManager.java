@@ -1,17 +1,15 @@
-package com.cvte.ble.logic;
+package com.cvte.ble.sdk.core;
 
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 
-import com.cvte.ble.core.BleConnectCallback;
-import com.cvte.ble.core.BleConnectInfo;
-import com.cvte.ble.core.BleRssiCallback;
-import com.cvte.ble.core.BleScanCallback;
-import com.cvte.ble.core.BleWriteCallback;
-import com.cvte.ble.core.ConnectState;
-import com.cvte.ble.core.GoogleBle;
-import com.cvte.ble.core.ScanState;
-import com.cvte.ble.utils.LogUtils;
+import com.cvte.ble.sdk.entity.BleConnectInfo;
+import com.cvte.ble.sdk.listener.BleConnectCallback;
+import com.cvte.ble.sdk.listener.BleRssiCallback;
+import com.cvte.ble.sdk.listener.BleScanCallback;
+import com.cvte.ble.sdk.listener.BleWriteCallback;
+import com.cvte.ble.sdk.states.ConnectState;
+import com.cvte.ble.sdk.utils.BleLogUtils;
 
 /**
  * Created by jianhaohong on 10/28/14.
@@ -21,38 +19,28 @@ public class BleManager {
     private BleConnectCallback mBleConnectCallback;
     private BleConnectInfo mBleConnectInfo;
     private boolean mIsAuto;
-    private ScanType mCurrentScanType;
-    private ConnectState mPreviousConnectState = ConnectState.Disconnect;
 
     private BleScanCallback mBleScanCallback = new BleScanCallback() {
         @Override
         public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-            switch (mCurrentScanType) {
-                case DEVICE:
-                    connectIfDeviceFound(device, scanRecord);
-                    break;
-            }
+            connectIfDeviceFound(device, scanRecord);
         }
 
         @Override
         public void onError(int errorCode, String message) {
             mGoogleBle.stopScan();
-            switch (mCurrentScanType) {
-                case DEVICE:
-                    if (mBleConnectCallback != null) {
-                        mBleConnectCallback.onError(errorCode, message);
-                    }
-                    break;
+            if (mBleConnectCallback != null) {
+                mBleConnectCallback.onError(errorCode, message);
             }
         }
     };
 
 
     private void connectIfDeviceFound(BluetoothDevice device, byte[] broadcast) {
-        LogUtils.LOGD("device find ", " " + device.getName());
+        BleLogUtils.LOGD("device find ", " " + device.getName());
         if (mBleConnectInfo != null && mBleConnectInfo.shouldConnectDevice(device, broadcast)) {
             mBleConnectCallback.onDeviceFound(device);
-            LogUtils.LOGD("device connect ", " " + device.getName());
+            BleLogUtils.LOGD("device connect ", " " + device.getName());
             mGoogleBle.stopScan();
             mGoogleBle.connect(device, mBleConnectInfo, mIsAuto);
         }
@@ -69,13 +57,11 @@ public class BleManager {
 
 
     public void connectDevice(BleConnectInfo bleConnectInfo, boolean isAuto) {
-        if (mGoogleBle.getScanState() != ScanState.Scanning &&
-                mGoogleBle.getConnectState() == ConnectState.Disconnect) {
-            mCurrentScanType = ScanType.DEVICE;
+        if (mGoogleBle.getConnectState() == ConnectState.Disconnect) {
             mIsAuto = isAuto;
             mBleConnectInfo = bleConnectInfo;
             mGoogleBle.startScan(mBleScanCallback);
-            LogUtils.LOGD("bleManager","start scan");
+            BleLogUtils.LOGD("bleManager", "start scan");
         }
     }
 
@@ -98,10 +84,6 @@ public class BleManager {
     }
 
 
-    public void stopScan() {
-        mGoogleBle.stopScan();
-    }
-
 
     public void disconnect() {
         mGoogleBle.disconnect();
@@ -116,15 +98,5 @@ public class BleManager {
         mGoogleBle.setBleRssiCallback(bleRssiCallback);
     }
 
-    public ConnectState getPreviousConnectState() {
-        return mPreviousConnectState;
-    }
 
-    public void setPreviousConnectState(ConnectState previousConnectState) {
-        this.mPreviousConnectState = previousConnectState;
-    }
-
-    public ScanState getCurrentScanState() {
-        return mGoogleBle.getScanState();
-    }
 }
