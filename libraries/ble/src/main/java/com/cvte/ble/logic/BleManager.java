@@ -69,7 +69,8 @@ public class BleManager {
 
 
     public void connectDevice(BleConnectInfo bleConnectInfo, boolean isAuto) {
-        if (mGoogleBle.getScanState() != ScanState.Scanning && mGoogleBle.getConnectState() == ConnectState.Disconnect) {
+        if (mGoogleBle.getScanState() != ScanState.Scanning &&
+                mGoogleBle.getConnectState() == ConnectState.Disconnect) {
             mCurrentScanType = ScanType.DEVICE;
             mIsAuto = isAuto;
             mBleConnectInfo = bleConnectInfo;
