@@ -56,5 +56,6 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.2.0'
     compile project(':libraries:ble')
+    compile 'de.greenrobot:eventbus:2.4.0'
     compile files('libs/ActiveAndroid-0.0.2.jar')
 }

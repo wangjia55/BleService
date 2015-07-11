@@ -44,24 +44,24 @@ public class GoogleBle {
     private static final int MSG_RSSI_READ_SUCCESS = 0x11228;
     private static final int MSG_RSSI_READ_ERROR = 0x11229;
     private static final int CONNECTION_CHECK_TIME = 30 * 1000;
-    private static final String PARAM_DEVICE = "device";
     private static final String PARAM_RSSI = "rssi";
     private static final String PARAM_BYTE = "byte";
     private static final String PARAM_ERROR_CODE = "code";
     private static final String PARAM_ERROR_REASON = "reason";
     private Context mContext;
-    private BluetoothAdapter mBluetoothAdapter;
-    private BluetoothManager mBluetoothManager;
-    private ConnectState mConnectState = ConnectState.Disconnect;
-    private BluetoothState mBluetoothState = BluetoothState.Bluetooth_Off;
-    private BleConnectCallback mBleConnectCallback;
-    private BleRssiCallback mBleRssiCallback;
-    private BleWriteCallback mBleWriteCallback;
     private BleConnectInfo mBleConnectInfo;
-    private BluetoothGattCharacteristic mReadCharacteristic;
-    private BluetoothGattCharacteristic mWriteCharacteristic;
     private BluetoothGatt mBluetoothGatt;
     private BluetoothDevice mBluetoothDevice;
+    private BluetoothAdapter mBluetoothAdapter;
+    private BluetoothManager mBluetoothManager;
+    private BleRssiCallback mBleRssiCallback;
+    private BleWriteCallback mBleWriteCallback;
+    private BleConnectCallback mBleConnectCallback;
+    private BluetoothGattCharacteristic mReadCharacteristic;
+    private BluetoothGattCharacteristic mWriteCharacteristic;
+    private ConnectState mConnectState = ConnectState.Disconnect;
+    private BluetoothState mBluetoothState = BluetoothState.Bluetooth_Off;
+
     private final Queue<byte[]> sWriteQueue = new ConcurrentLinkedQueue<byte[]>();
     private boolean sIsWriting = false;
 
@@ -103,7 +103,7 @@ public class GoogleBle {
         if (mConnectState != ConnectState.Disconnect) {
             disconnect();
             if (mBleConnectCallback != null) {
-                mBleConnectCallback.onConnectError(ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open", mBleConnectInfo);
+                mBleConnectCallback.onConnectError(mBleConnectInfo, ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open");
             }
         }
     }
@@ -155,7 +155,7 @@ public class GoogleBle {
 
     private void callOnConnectSuccess() {
         if (mBleConnectCallback != null) {
-            mBleConnectCallback.onConnectSuccess(mBluetoothDevice, mBleConnectInfo);
+            mBleConnectCallback.onConnectSuccess(mBleConnectInfo, mBluetoothDevice);
         }
     }
 
@@ -164,7 +164,7 @@ public class GoogleBle {
         int error = bundle.getInt(PARAM_ERROR_CODE);
         String reason = bundle.getString(PARAM_ERROR_REASON);
         if (mBleConnectCallback != null) {
-            mBleConnectCallback.onConnectError(error, reason, mBleConnectInfo);
+            mBleConnectCallback.onConnectError(mBleConnectInfo, error, reason);
         }
     }
 
@@ -173,7 +173,7 @@ public class GoogleBle {
         if (mConnectState != ConnectState.Connected) {
             disconnect();
             if (mBleConnectCallback != null) {
-                mBleConnectCallback.onConnectError(ErrorStatus.CONNECT_TIME_OUT, "connect time out", mBleConnectInfo);
+                mBleConnectCallback.onConnectError(mBleConnectInfo, ErrorStatus.CONNECT_TIME_OUT, "connect time out");
             }
         }
     }
@@ -305,7 +305,7 @@ public class GoogleBle {
         if (mBluetoothState == BluetoothState.Bluetooth_Off) {
             disconnect();
             if (mBleConnectCallback != null) {
-                mBleConnectCallback.onConnectError(ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open", mBleConnectInfo);
+                mBleConnectCallback.onConnectError(mBleConnectInfo, ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open");
             }
             return;
         }
@@ -313,11 +313,11 @@ public class GoogleBle {
         if (mConnectState != ConnectState.Disconnect) {
             if (mBleConnectCallback != null) {
                 if (mConnectState == ConnectState.Connecting) {
-                    mBleConnectCallback.onConnectError(ErrorStatus.ALREADY_CONNECTING, "current state is connecting", mBleConnectInfo);
+                    mBleConnectCallback.onConnectError(mBleConnectInfo, ErrorStatus.ALREADY_CONNECTING, "current state is connecting");
                 }
 
                 if (mConnectState == ConnectState.Connected) {
-                    mBleConnectCallback.onConnectError(ErrorStatus.ALREADY_CONNECTED, "current state is connecting", mBleConnectInfo);
+                    mBleConnectCallback.onConnectError(mBleConnectInfo, ErrorStatus.ALREADY_CONNECTED, "current state is connecting");
                 }
             }
             return;
@@ -334,6 +334,9 @@ public class GoogleBle {
         if (mBluetoothGatt != null) {
             mBluetoothGatt.close();
             mBluetoothGatt = null;
+        }
+        if (mBleConnectCallback != null) {
+            mBleConnectCallback.onConnectError(mBleConnectInfo, ErrorStatus.GATT_FAIL, "Disconnect");
         }
         mConnectState = ConnectState.Disconnect;
     }
@@ -426,10 +429,6 @@ public class GoogleBle {
 
     public ConnectState getConnectState() {
         return mConnectState;
-    }
-
-    public BluetoothState getBluetoothState() {
-        return mBluetoothState;
     }
 
     public void setBleRssiCallback(BleRssiCallback bleRssiCallback) {

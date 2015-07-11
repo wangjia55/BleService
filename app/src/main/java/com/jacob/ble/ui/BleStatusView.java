@@ -64,6 +64,10 @@ public class BleStatusView extends LinearLayout implements View.OnClickListener 
         mTextViewName.setText(bleDevice.getName());
     }
 
+    public void setStatus(String state) {
+        mTextViewState.setText(state);
+    }
+
     public interface OnBleMenuListener {
         void onBind(BleDevice device);
 

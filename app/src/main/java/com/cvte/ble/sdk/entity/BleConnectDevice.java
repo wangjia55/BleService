@@ -9,13 +9,23 @@ import com.cvte.ble.sdk.states.ConnectState;
  * Package : com.cvte.ble.sdk.entity
  * Author : jacob
  * Date : 15-7-10
- * Description : 这个类是用来xxx
+ * Description : 这个类封装了需要sdk连接设备的必要信息
  */
 public class BleConnectDevice {
+
+    /**
+     * 唯一的标识：因为需要满足同时连接多个设备，所以不同设备之间需要通过tag来区别
+     */
     private String singleTag;
 
+    /**
+     * 每个设备含有一个独立的GoogleBle对象，这个对象中包含该设备的操作和蓝牙状态
+     */
     private GoogleBle googleBle;
 
+    /**
+     * 连接蓝牙提供的必要信息
+     */
     private BleConnectInfo bleConnectInfo;
 
 

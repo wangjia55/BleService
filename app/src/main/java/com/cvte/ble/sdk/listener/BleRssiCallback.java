@@ -1,7 +1,10 @@
 package com.cvte.ble.sdk.listener;
 
 /**
- * Created by jianhaohong on 2/11/15.
+ * Package : com.cvte.ble.sdk.listener
+ * Author : jacob
+ * Date : 15-7-10
+ * Description : 这个类是蓝牙信号强度的接口
  */
 public interface BleRssiCallback {
      void onBleRssiRead(int rssi);
