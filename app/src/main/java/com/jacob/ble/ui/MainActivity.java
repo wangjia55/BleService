@@ -39,6 +39,7 @@ public class MainActivity extends FragmentActivity {
 
     private void showBleDeviceState() {
         mLinearLayout.removeAllViews();
+        BleSdkManager bleSdkManager = BleSdkManager.newInstance(getApplicationContext());
         List<BleDevice> bleDeviceList = DataBaseHelper.getInstance().getAllBleDevice();
         if (bleDeviceList != null && bleDeviceList.size() > 0) {
             for (BleDevice bleDevice : bleDeviceList) {
@@ -46,6 +47,7 @@ public class MainActivity extends FragmentActivity {
                 bleStatusView.setBleDevice(bleDevice);
                 bleStatusView.setTag(bleDevice.getImsi());
                 bleStatusView.setOnBleMenuListener(mBleMenuListener);
+                bleStatusView.setStatus(bleSdkManager.getDeviceState(new TrackerConnectInfo(bleDevice.getImsi(), bleDevice.getImsi())));
                 mLinearLayout.addView(bleStatusView);
             }
         }
@@ -137,13 +139,13 @@ public class MainActivity extends FragmentActivity {
     private BleStatusView.OnBleMenuListener mBleMenuListener = new BleStatusView.OnBleMenuListener() {
         @Override
         public void onBind(BleDevice device) {
-            TrackerConnectInfo connectInfo = new TrackerConnectInfo(device.getImsi());
+            TrackerConnectInfo connectInfo = new TrackerConnectInfo(device.getImsi(), device.getImei());
             BleSdkManager.newInstance(getApplicationContext()).connectBleDevice(connectInfo);
         }
 
         @Override
         public void unBind(BleDevice device) {
-            TrackerConnectInfo connectInfo = new TrackerConnectInfo(device.getImsi());
+            TrackerConnectInfo connectInfo = new TrackerConnectInfo(device.getImsi(), device.getImei());
             BleSdkManager.newInstance(getApplicationContext()).disConnectBleDevice(connectInfo);
         }
 
@@ -151,7 +153,7 @@ public class MainActivity extends FragmentActivity {
         public void onEdit(BleDevice device) {
             Intent intent = new Intent(MainActivity.this, AddDeviceActivity.class);
             intent.putExtra(AddDeviceActivity.EXTRA_TYPE, AddDeviceActivity.TYPE_EDIT);
-            intent.putExtra(AddDeviceActivity.EXTRA_IMEI, device.getImei());
+            intent.putExtra(AddDeviceActivity.EXTRA_IMSI, device.getImsi());
             startActivityForResult(intent, REQUEST_ADD_DEVICE);
         }
     };

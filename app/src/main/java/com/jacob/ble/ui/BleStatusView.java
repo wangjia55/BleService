@@ -6,6 +6,7 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.cvte.ble.sdk.states.ConnectState;
 import com.jacob.ble.R;
 import com.jacob.ble.bean.BleDevice;
 
@@ -35,6 +36,7 @@ public class BleStatusView extends LinearLayout implements View.OnClickListener 
         mTextViewName = (TextView) findViewById(R.id.text_view_name);
         mTextViewState = (TextView) findViewById(R.id.text_view_state);
 
+        mTextViewState.setText("已解绑");
         findViewById(R.id.button_bind).setOnClickListener(this);
         findViewById(R.id.button_unbind).setOnClickListener(this);
         findViewById(R.id.button_edit).setOnClickListener(this);
@@ -48,6 +50,7 @@ public class BleStatusView extends LinearLayout implements View.OnClickListener 
                     mListener.onBind(mBleDevice);
                     break;
                 case R.id.button_unbind:
+                    mTextViewState.setText("已解绑");
                     mListener.unBind(mBleDevice);
                     break;
                 case R.id.button_edit:
@@ -65,6 +68,19 @@ public class BleStatusView extends LinearLayout implements View.OnClickListener 
     }
 
     public void setStatus(String state) {
+        mTextViewState.setText(state);
+    }
+
+    public void setStatus(ConnectState connectState){
+        String state = "";
+        switch (connectState) {
+            case Connected:
+                state = " 已经连接";
+                break;
+            case Disconnect:
+                state = " 已经断开";
+                break;
+        }
         mTextViewState.setText(state);
     }
 

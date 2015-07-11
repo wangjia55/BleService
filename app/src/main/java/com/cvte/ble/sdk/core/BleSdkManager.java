@@ -170,6 +170,17 @@ public class BleSdkManager implements BleOperationListener {
         mAllDeviceMap.remove(bleConnectInfo.getSingleTag());
     }
 
+    @Override
+    public ConnectState getDeviceState(BleConnectInfo bleConnectInfo) {
+        if (bleConnectInfo == null) return ConnectState.Disconnect;
+
+        BleConnectDevice bleConnectDevice = mAllDeviceMap.get(bleConnectInfo.getSingleTag());
+        if (bleConnectDevice != null) {
+            return bleConnectDevice.getConnectState();
+        }
+        return ConnectState.Disconnect;
+    }
+
     private BluetoothAdapter.LeScanCallback mBleScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
@@ -202,6 +213,10 @@ public class BleSdkManager implements BleOperationListener {
         @Override
         public void onConnectSuccess(BleConnectInfo bleConnectInfo, BluetoothDevice bluetoothDevice) {
             BleLogUtils.LOGE(TAG, "onConnectSuccess--:" + bleConnectInfo.getSingleTag());
+            BleConnectDevice bleConnectDevice = mAllDeviceMap.get(bleConnectInfo.getSingleTag());
+            if (bleConnectDevice != null) {
+                bleConnectDevice.getGoogleBle().write(BleCommand.getVerifyCommand(bleConnectInfo.getVerifyCommand()));
+            }
             EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BleState.CONNECTED, bleConnectInfo);
             EventBus.getDefault().post(eventBleDevice);
             startAlertActivity(eventBleDevice);
@@ -216,7 +231,7 @@ public class BleSdkManager implements BleOperationListener {
 
         @Override
         public void onConnectError(BleConnectInfo bleConnectInfo, int errorCode, String reason) {
-            BleLogUtils.LOGE(TAG, "onConnectError--:" + bleConnectInfo.getSingleTag());
+            BleLogUtils.LOGE(TAG, "onConnectError--:" + bleConnectInfo.getSingleTag() + "//" + reason);
             EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BleState.DISCONNECT, bleConnectInfo);
             EventBus.getDefault().post(eventBleDevice);
             startAlertActivity(eventBleDevice);
@@ -239,7 +254,7 @@ public class BleSdkManager implements BleOperationListener {
         public void run() {
             stopScan();
             startScan();
-            sHandler.postDelayed(mScanDeviceRunnable, 30 * 1000);
+            sHandler.postDelayed(mScanDeviceRunnable, 10 * 1000);
         }
     };
 

@@ -16,9 +16,20 @@ import java.util.UUID;
 public class TrackerConnectInfo extends BleConnectInfo {
 
     private String imbt;
+    private String imei;
 
-    public TrackerConnectInfo(String imbt){
-        this.imbt = imbt;
+    public TrackerConnectInfo(String... imbt){
+        this.imbt = imbt[0];
+        this.imei = imbt[1];
+    }
+
+    public String getImei() {
+        return imei;
+    }
+
+    @Override
+    public String getVerifyCommand() {
+        return imei;
     }
 
     @Override

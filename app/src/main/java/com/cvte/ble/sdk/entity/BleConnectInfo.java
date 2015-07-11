@@ -10,8 +10,11 @@ import java.util.UUID;
  * Date : 15-7-10
  * Description : 这个类是连接蓝牙设备的信息类（需要提供蓝牙设备的必要信息，如UUID 等）
  */
-public abstract class BleConnectInfo  implements Serializable{
+public abstract class BleConnectInfo implements Serializable {
+
     public abstract String getSingleTag();
+
+    public abstract String getVerifyCommand();
 
     public abstract UUID getWriteCharacteristicUUID();
 

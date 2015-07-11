@@ -13,7 +13,7 @@ import com.jacob.ble.utils.DataBaseHelper;
 
 public class AddDeviceActivity extends Activity implements View.OnClickListener {
     public static final String EXTRA_TYPE = "type";
-    public static final String EXTRA_IMEI = "imei";
+    public static final String EXTRA_IMSI = "imsi";
 
     public static final int TYPE_ADD = 100;
     public static final int TYPE_EDIT = 101;
@@ -31,14 +31,14 @@ public class AddDeviceActivity extends Activity implements View.OnClickListener 
         setContentView(R.layout.activity_add_device);
 
         type = getIntent().getIntExtra(EXTRA_TYPE, type);
-        String imei = getIntent().getStringExtra(EXTRA_IMEI);
+        String imsi = getIntent().getStringExtra(EXTRA_IMSI);
         findViewById(R.id.button_add_device).setOnClickListener(this);
         mEditTextImei = (EditText) findViewById(R.id.edit_text_imei);
         mEditTextImsi = (EditText) findViewById(R.id.edit_text_imsi);
         mEditTextName = (EditText) findViewById(R.id.edit_text_name);
 
         if (type == TYPE_EDIT) {
-            mBleDevice = DataBaseHelper.getInstance().getBleDeviceByImei(imei);
+            mBleDevice = DataBaseHelper.getInstance().getBleDeviceByImsi(imsi);
             mEditTextImei.setText(mBleDevice.getImei());
             mEditTextImsi.setText(mBleDevice.getImsi());
             mEditTextName.setText(mBleDevice.getName());

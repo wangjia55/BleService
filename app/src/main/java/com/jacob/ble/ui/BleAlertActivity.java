@@ -54,15 +54,15 @@ public class BleAlertActivity extends FragmentActivity {
     private void showContentFromIntent(Intent intent) {
         if (intent != null) {
             EventBleDevice eventBleDevice = (EventBleDevice) intent.getSerializableExtra("eventDevice");
-            BleDevice device1 = DataBaseHelper.getInstance().getBleDeviceByImei(eventBleDevice.getBleConnectInfo().getSingleTag());
+            BleDevice device1 = DataBaseHelper.getInstance().getBleDeviceByImsi(eventBleDevice.getBleConnectInfo().getSingleTag());
             EventBleDevice.BleState state = eventBleDevice.getBleState();
             StringBuilder sb = new StringBuilder(device1.getName() + " ");
             switch (state) {
                 case CONNECTED:
-                    sb.append(" 已经连接");
+                    sb.append(" 已连接");
                     break;
                 case DISCONNECT:
-                    sb.append(" 已经断开");
+                    sb.append(" 已断开");
                     break;
             }
             mTextViewContent.setText(sb.toString());

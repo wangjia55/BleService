@@ -2,6 +2,7 @@ package com.cvte.ble.sdk.listener;
 
 import com.cvte.ble.sdk.entity.BleConnectInfo;
 import com.cvte.ble.sdk.states.BluetoothState;
+import com.cvte.ble.sdk.states.ConnectState;
 import com.cvte.ble.sdk.states.ScanState;
 
 /**
@@ -61,4 +62,9 @@ public interface BleOperationListener {
      * 取消连接某个蓝牙设备
      */
     void disConnectBleDevice(BleConnectInfo bleConnectInfo);
+
+    /**
+     * 获取某个指定设备当前的连接状态
+     */
+    ConnectState getDeviceState(BleConnectInfo bleConnectInfo);
 }

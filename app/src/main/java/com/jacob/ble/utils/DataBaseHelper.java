@@ -29,7 +29,8 @@ public class DataBaseHelper {
         return new Select().from(BleDevice.class).execute();
     }
 
-    public BleDevice getBleDeviceByImei(String imei) {
-        return new Select().from(BleDevice.class).where("imei = ?",imei).executeSingle();
+    public BleDevice getBleDeviceByImsi(String imsi) {
+        return new Select().from(BleDevice.class).where("imsi = ?",imsi).executeSingle();
     }
+
 }

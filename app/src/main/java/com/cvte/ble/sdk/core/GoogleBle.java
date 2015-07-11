@@ -43,7 +43,7 @@ public class GoogleBle {
     private static final int MSG_CONNECT_SUCCESS = 0x11227;
     private static final int MSG_RSSI_READ_SUCCESS = 0x11228;
     private static final int MSG_RSSI_READ_ERROR = 0x11229;
-    private static final int CONNECTION_CHECK_TIME = 30 * 1000;
+    private static final int CONNECTION_CHECK_TIME = 15 * 1000;
     private static final String PARAM_RSSI = "rssi";
     private static final String PARAM_BYTE = "byte";
     private static final String PARAM_ERROR_CODE = "code";
@@ -190,12 +190,12 @@ public class GoogleBle {
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            BleLogUtils.LOGD(TAG, "connection state change " + "gatt status " + status + "bluetoothProfile new State " + newState);
-            if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
+            BleLogUtils.LOGD(TAG, "connection state change " + "gatt status " + status + " bluetoothProfile new State " + newState);
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
                 BleLogUtils.LOGD(TAG, "connected to GATT server and discovery service");
                 mBluetoothGatt.discoverServices();
-            } else {
-                BleLogUtils.LOGD(TAG, "connection state change disconnect" + "gatt status " + status + "bluetoothProfile new State " + newState);
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED){
+                BleLogUtils.LOGD(TAG, "connection state change disconnect" + "gatt status " + status + " bluetoothProfile new State " + newState);
                 disconnect();
                 mHandler.removeMessages(MSG_CONNECTION_CHECK);
                 sendConnectErrorMessage(ErrorStatus.CONNECT_STATE_FAIL, "fail at onConnectionStateChange status " + status + " newState " + newState);
