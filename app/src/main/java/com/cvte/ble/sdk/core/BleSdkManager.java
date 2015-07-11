@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 
@@ -21,6 +22,7 @@ import com.cvte.ble.sdk.states.BluetoothState;
 import com.cvte.ble.sdk.states.ConnectState;
 import com.cvte.ble.sdk.states.ScanState;
 import com.cvte.ble.sdk.utils.BleLogUtils;
+import com.jacob.ble.ui.BleAlertActivity;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -182,7 +184,7 @@ public class BleSdkManager implements BleOperationListener {
                 if (bleConnectDevice.getConnectState() == ConnectState.Disconnect
                         && bleConnectDevice.getBleConnectInfo().shouldConnectDevice(device, scanRecord)) {
                     BleLogUtils.LOGE(TAG, "found device:" + bleConnectDevice.getSingleTag());
-                    mBleConnectCallBack.onDeviceFound(bleConnectDevice.getBleConnectInfo(),device);
+                    mBleConnectCallBack.onDeviceFound(bleConnectDevice.getBleConnectInfo(), device);
                     bleConnectDevice.getGoogleBle().connect(device, bleConnectDevice.getBleConnectInfo(),
                             mBleConnectCallBack, false);
                     return;
@@ -192,27 +194,45 @@ public class BleSdkManager implements BleOperationListener {
 
     };
 
+    /**
+     * 蓝牙连接状态的回调函数，当接收到回调信息后直接通过EventBus发出信息
+     * UI层只需要接收消息即可
+     */
     private BleConnectCallback mBleConnectCallBack = new BleConnectCallback() {
         @Override
-        public void onConnectSuccess( BleConnectInfo bleConnectInfo,BluetoothDevice bluetoothDevice) {
+        public void onConnectSuccess(BleConnectInfo bleConnectInfo, BluetoothDevice bluetoothDevice) {
             BleLogUtils.LOGE(TAG, "onConnectSuccess--:" + bleConnectInfo.getSingleTag());
-            EventBus.getDefault().post(new EventBleDevice(EventBleDevice.BleState.CONNECTED, bleConnectInfo.getSingleTag()));
+            EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BleState.CONNECTED, bleConnectInfo);
+            EventBus.getDefault().post(eventBleDevice);
+            startAlertActivity(eventBleDevice);
         }
 
         @Override
-        public void onDeviceFound(BleConnectInfo bleConnectInfo,BluetoothDevice bluetoothDevice) {
+        public void onDeviceFound(BleConnectInfo bleConnectInfo, BluetoothDevice bluetoothDevice) {
             BleLogUtils.LOGE(TAG, "onDeviceFound--:" + bleConnectInfo.getSingleTag());
-            EventBus.getDefault().post(new EventBleDevice(EventBleDevice.BleState.DEVICE_FOUND, bleConnectInfo.getSingleTag()));
+            EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BleState.DEVICE_FOUND, bleConnectInfo);
+            EventBus.getDefault().post(eventBleDevice);
         }
 
         @Override
-        public void onConnectError(BleConnectInfo bleConnectInfo,int errorCode, String reason) {
+        public void onConnectError(BleConnectInfo bleConnectInfo, int errorCode, String reason) {
             BleLogUtils.LOGE(TAG, "onConnectError--:" + bleConnectInfo.getSingleTag());
-            EventBus.getDefault().post(new EventBleDevice(EventBleDevice.BleState.DISCONNECT, bleConnectInfo.getSingleTag()));
+            EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BleState.DISCONNECT, bleConnectInfo);
+            EventBus.getDefault().post(eventBleDevice);
+            startAlertActivity(eventBleDevice);
         }
 
     };
 
+
+    private void startAlertActivity(EventBleDevice eventBleDevice) {
+        Intent intent = new Intent(mContext, BleAlertActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("eventDevice", eventBleDevice);
+        intent.putExtras(bundle);
+        mContext.startActivity(intent);
+    }
 
     private Runnable mScanDeviceRunnable = new Runnable() {
         @Override

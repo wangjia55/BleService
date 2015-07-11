@@ -8,28 +8,34 @@ import java.io.Serializable;
  * Date : 15-7-10
  * Description : 这个类是用来发送蓝牙状态信息（通过Event发送给UI层）
  */
-public class EventBleDevice implements Serializable{
+public class EventBleDevice implements Serializable {
 
-    public  enum BleState {
+    public enum BleState {
         DEVICE_FOUND,
         DISCONNECT,
         CONNECTED,
     }
 
+    /**
+     * 当前状态
+     */
     private BleState bleState;
-    private String imsi;
 
-    public EventBleDevice(BleState bleState, String imsi) {
+    /**
+     * 指定的蓝牙设备
+     */
+    private BleConnectInfo bleConnectInfo;
+
+    public EventBleDevice(BleState bleState, BleConnectInfo bleConnectInfo) {
         this.bleState = bleState;
-        this.imsi = imsi;
+        this.bleConnectInfo = bleConnectInfo;
     }
 
     public BleState getBleState() {
         return bleState;
     }
 
-    public String getImsi() {
-        return imsi;
+    public BleConnectInfo getBleConnectInfo() {
+        return bleConnectInfo;
     }
-
 }

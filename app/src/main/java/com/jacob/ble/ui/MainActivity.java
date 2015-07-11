@@ -51,11 +51,11 @@ public class MainActivity extends FragmentActivity {
         }
     }
 
-    private BleStatusView getBleStatusView(String imsi){
+    private BleStatusView getBleStatusView(String imsi) {
         int count = mLinearLayout.getChildCount();
-        for (int i = 0;i<count;i++){
+        for (int i = 0; i < count; i++) {
             View view = mLinearLayout.getChildAt(i);
-            if (view.getTag().equals(imsi)){
+            if (view.getTag().equals(imsi)) {
                 return (BleStatusView) view;
             }
         }
@@ -99,17 +99,17 @@ public class MainActivity extends FragmentActivity {
 
         if (requestCode == BLUETOOTH_OPEN_REQUEST) {
             if (resultCode == RESULT_OK) {
-                Toast.makeText(this,"同意开启蓝牙",Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "同意开启蓝牙", Toast.LENGTH_SHORT).show();
             } else if (resultCode == RESULT_CANCELED) {
-                Toast.makeText(this,"拒绝开启蓝牙",Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "拒绝开启蓝牙", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
     public void onEventMainThread(EventBleDevice device) {
-        String imsi = device.getImsi();
+        String imsi = device.getBleConnectInfo().getSingleTag();
         String state = "";
-        switch (device.getBleState()){
+        switch (device.getBleState()) {
             case CONNECTED:
                 state = "已连接";
                 break;
@@ -122,7 +122,7 @@ public class MainActivity extends FragmentActivity {
         }
 
         BleStatusView statusView = getBleStatusView(imsi);
-        if(statusView != null){
+        if (statusView != null) {
             statusView.setStatus(state);
         }
 
