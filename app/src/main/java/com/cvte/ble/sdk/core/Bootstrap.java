@@ -33,13 +33,13 @@ public class Bootstrap {
                                                               mIntent, 0);
 			Calendar time = Calendar.getInstance();
 			time.setTimeInMillis(System.currentTimeMillis());
-			time.add(Calendar.SECOND,5);
+			time.add(Calendar.SECOND,1);
 
 			AlarmManager am = (AlarmManager) context
                 .getSystemService(Context.ALARM_SERVICE);
 
 			am.setRepeating(AlarmManager.RTC_WAKEUP, time.getTimeInMillis(),
-                            10* 1000, sender);
+                            20* 1000, sender);
 
 			// enable boot/powerkey restart
 			setBootupListen(context, true);

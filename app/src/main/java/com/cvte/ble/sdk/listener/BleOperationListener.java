@@ -1,9 +1,12 @@
 package com.cvte.ble.sdk.listener;
 
+import com.cvte.ble.sdk.entity.BleConnectDevice;
 import com.cvte.ble.sdk.entity.BleConnectInfo;
 import com.cvte.ble.sdk.states.BluetoothState;
 import com.cvte.ble.sdk.states.ConnectState;
 import com.cvte.ble.sdk.states.ScanState;
+
+import java.util.Map;
 
 /**
  * Package : com.cvte.ble.sdk.listener
@@ -42,6 +45,16 @@ public interface BleOperationListener {
      * 获取当前扫描蓝牙的状态
      */
     ScanState getScanState();
+
+    /**
+     * 获取当前队列中的设备个数
+     */
+    int getDeviceSize();
+
+    /**
+     *  获取当前队列中的设备信息
+     */
+    Map<String, BleConnectDevice> getDeviceMap();
 
     /**
      * 注册蓝牙状态广播

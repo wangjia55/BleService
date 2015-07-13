@@ -18,6 +18,7 @@ import com.cvte.ble.sdk.entity.BleConnectInfo;
 import com.cvte.ble.sdk.entity.EventBleDevice;
 import com.cvte.ble.sdk.listener.BleConnectCallback;
 import com.cvte.ble.sdk.listener.BleOperationListener;
+import com.cvte.ble.sdk.listener.BleDeviceChangeListener;
 import com.cvte.ble.sdk.states.BluetoothState;
 import com.cvte.ble.sdk.states.ConnectState;
 import com.cvte.ble.sdk.states.ScanState;
@@ -27,7 +28,6 @@ import com.jacob.ble.ui.BleAlertActivity;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 
 import de.greenrobot.event.EventBus;
 
@@ -50,6 +50,7 @@ public class BleSdkManager implements BleOperationListener {
     private static HandlerThread sHandlerThread = new HandlerThread("BleSDKThread");
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
+    private BleDeviceChangeListener mDeviceSizeChangeListener;
 
 
     private BleSdkManager(Context context) {
@@ -72,11 +73,9 @@ public class BleSdkManager implements BleOperationListener {
             int blueState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0);
             switch (blueState) {
                 case BluetoothAdapter.STATE_ON:
-                    BleLogUtils.LOGE(TAG, "****************************Bluetooth_On");
                     mBluetoothState = BluetoothState.Bluetooth_On;
                     break;
                 case BluetoothAdapter.STATE_OFF:
-                    BleLogUtils.LOGE(TAG, "****************************Bluetooth_Off");
                     mScanState = ScanState.ScanStop;
                     mBluetoothState = BluetoothState.Bluetooth_Off;
                     break;
@@ -86,6 +85,9 @@ public class BleSdkManager implements BleOperationListener {
         }
     };
 
+    /**
+     * 注册蓝牙状态广播
+     */
     @Override
     public void registerBleStateReceiver() {
         if (mContext != null) {
@@ -93,6 +95,9 @@ public class BleSdkManager implements BleOperationListener {
         }
     }
 
+    /**
+     * 取消注册蓝牙状态广播
+     */
     @Override
     public void unregisterBleStateReceiver() {
         if (mContext != null) {
@@ -100,7 +105,9 @@ public class BleSdkManager implements BleOperationListener {
         }
     }
 
-
+    /**
+     * 初始化蓝牙,得到当前蓝牙的状态
+     */
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     public void init() {
@@ -115,7 +122,9 @@ public class BleSdkManager implements BleOperationListener {
         }
     }
 
-
+    /**
+     * 开始扫描
+     */
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     public void startScan() {
@@ -129,6 +138,9 @@ public class BleSdkManager implements BleOperationListener {
         }
     }
 
+    /**
+     * 判断是否需要扫描蓝牙，比如：当前的设备已经全部处于连接上的状态时，是不需要扫描蓝牙的
+     */
     private boolean isNeedStartScan() {
         int size = mAllDeviceMap.size();
         boolean hasConnect = true;
@@ -143,6 +155,9 @@ public class BleSdkManager implements BleOperationListener {
         return size > 0 && !hasConnect;
     }
 
+    /**
+     * 停止扫描
+     */
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     public void stopScan() {
@@ -153,15 +168,29 @@ public class BleSdkManager implements BleOperationListener {
         }
     }
 
+    /**
+     * 连接某个指定的蓝牙设备,支持多个设备同时连接
+     */
     @Override
     public void connectBleDevice(BleConnectInfo bleConnectInfo) {
         BleLogUtils.LOGE(TAG, "connectBleDevice");
-        BleConnectDevice bleConnectDevice = new BleConnectDevice(mContext, bleConnectInfo);
-        mAllDeviceMap.put(bleConnectDevice.getSingleTag(), bleConnectDevice);
-        sHandler.removeCallbacks(mScanDeviceRunnable);
-        sHandler.post(mScanDeviceRunnable);
+        BleConnectDevice bleConnectDevice = mAllDeviceMap.get(bleConnectInfo.getSingleTag());
+        if (bleConnectDevice != null && bleConnectDevice.getConnectState() != ConnectState.Disconnect) {
+            return;
+        } else {
+            bleConnectDevice = new BleConnectDevice(mContext, bleConnectInfo);
+            mAllDeviceMap.put(bleConnectDevice.getSingleTag(), bleConnectDevice);
+            sHandler.removeCallbacks(mScanDeviceRunnable);
+            sHandler.post(mScanDeviceRunnable);
+            if (mDeviceSizeChangeListener != null) {
+                mDeviceSizeChangeListener.onDeviceSizeChange(mAllDeviceMap);
+            }
+        }
     }
 
+    /**
+     * 取消连接某个蓝牙设备
+     */
     @Override
     public void disConnectBleDevice(BleConnectInfo bleConnectInfo) {
         BleLogUtils.LOGE(TAG, "disConnectBleDevice");
@@ -170,8 +199,14 @@ public class BleSdkManager implements BleOperationListener {
             bleConnectDevice.getGoogleBle().dispose();
         }
         mAllDeviceMap.remove(bleConnectInfo.getSingleTag());
+        if (mDeviceSizeChangeListener != null) {
+            mDeviceSizeChangeListener.onDeviceSizeChange(mAllDeviceMap);
+        }
     }
 
+    /**
+     * 获取某个指定设备当前的连接状态
+     */
     @Override
     public ConnectState getDeviceState(BleConnectInfo bleConnectInfo) {
         if (bleConnectInfo == null) return ConnectState.Disconnect;
@@ -183,6 +218,9 @@ public class BleSdkManager implements BleOperationListener {
         return ConnectState.Disconnect;
     }
 
+    /**
+     * 蓝牙扫描设备的回调，在这里为了保证蓝牙连接的稳定性，要求蓝牙是串行连接，即：一个连接成功后再次连接另外一个
+     */
     private BluetoothAdapter.LeScanCallback mBleScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
@@ -256,9 +294,10 @@ public class BleSdkManager implements BleOperationListener {
         public void run() {
             stopScan();
             startScan();
-            sHandler.postDelayed(mScanDeviceRunnable, 10 * 1000);
+            sHandler.postDelayed(mScanDeviceRunnable, BleSdkConfig.SCAN_TIME);
         }
     };
+
 
     @Override
     public BluetoothState getBluetoothState() {
@@ -271,6 +310,19 @@ public class BleSdkManager implements BleOperationListener {
     }
 
     @Override
+    public int getDeviceSize() {
+        if (mAllDeviceMap == null) {
+            return 0;
+        }
+        return mAllDeviceMap.size();
+    }
+
+    @Override
+    public Map<String, BleConnectDevice> getDeviceMap() {
+        return mAllDeviceMap;
+    }
+
+    @Override
     public void clearAll() {
         Set<String> keySet = mAllDeviceMap.keySet();
         for (String tag : keySet) {
@@ -278,4 +330,10 @@ public class BleSdkManager implements BleOperationListener {
         }
         mAllDeviceMap.clear();
     }
+
+
+    public void setOnDeviceSizeChangeListener(BleDeviceChangeListener listener) {
+        this.mDeviceSizeChangeListener = listener;
+    }
+
 }

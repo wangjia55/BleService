@@ -8,5 +8,8 @@ package com.cvte.ble.sdk.core;
  */
 public class BleSdkConfig {
 
-    public static final int SCAN_TIME = 15*1000;
+    /**
+     * 蓝牙扫描的时常
+     */
+    public static int SCAN_TIME = 20 * 1000;
 }

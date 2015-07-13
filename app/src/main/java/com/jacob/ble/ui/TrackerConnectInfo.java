@@ -18,9 +18,9 @@ public class TrackerConnectInfo extends BleConnectInfo {
     private String imbt;
     private String imei;
 
-    public TrackerConnectInfo(String... imbt){
-        this.imbt = imbt[0];
-        this.imei = imbt[1];
+    public TrackerConnectInfo(String imbt, String imei) {
+        this.imbt = imbt;
+        this.imei = imei;
     }
 
     public String getImei() {
