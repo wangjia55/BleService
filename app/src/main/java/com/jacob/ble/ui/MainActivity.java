@@ -9,12 +9,12 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.cvte.ble.sdk.core.BleSdkManager;
+import com.cvte.ble.sdk.core.Bootstrap;
+import com.cvte.ble.sdk.entity.EventBleDevice;
 import com.cvte.ble.sdk.states.BluetoothState;
 import com.cvte.ble.sdk.utils.BleUtils;
-import com.jacob.ble.BleService;
 import com.jacob.ble.R;
 import com.jacob.ble.bean.BleDevice;
-import com.cvte.ble.sdk.entity.EventBleDevice;
 import com.jacob.ble.utils.DataBaseHelper;
 
 import java.util.List;
@@ -65,13 +65,11 @@ public class MainActivity extends FragmentActivity {
     }
 
     public void startService(View view) {
-        Intent intent = new Intent(this, BleService.class);
-        startService(intent);
+        Bootstrap.startAlwaysOnService(this);
     }
 
     public void stopService(View view) {
-        Intent intent = new Intent(this, BleService.class);
-        stopService(intent);
+        Bootstrap.stopAlwaysOnService(this);
     }
 
     public void addDevice(View view) {
@@ -112,13 +110,13 @@ public class MainActivity extends FragmentActivity {
         String imsi = device.getBleConnectInfo().getSingleTag();
         String state = "";
         switch (device.getBleState()) {
-            case CONNECTED:
+            case EventBleDevice.CONNECTED:
                 state = "已连接";
                 break;
-            case DISCONNECT:
+            case EventBleDevice.DISCONNECT:
                 state = "断开";
                 break;
-            case DEVICE_FOUND:
+            case EventBleDevice.DEVICE_FOUND:
                 state = "发现设备";
                 break;
         }

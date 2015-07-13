@@ -5,6 +5,7 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <supports-screens
         android:anyDensity="true"
@@ -45,18 +46,22 @@
         <service
             android:name=".BleService"
             android:enabled="true">
-            <intent-filter android:priority="1000">
+            <intent-filter android:priority="90000">
                 <action android:name="com.jacob.ble.service"/>
             </intent-filter>
         </service>
 
+        <receiver android:name="AlarmBroadcastReceiver" android:exported="false" >
+            <intent-filter>
+                <action android:name="action.jacob.bleservice"/>
+            </intent-filter>
+        </receiver>
         <receiver
             android:name=".BleReceiver"
             android:enabled="true">
-            <intent-filter android:priority="1000">
+            <intent-filter android:priority="90000">
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.USER_PRESENT"/>
-                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED"/>
             </intent-filter>
         </receiver>
 

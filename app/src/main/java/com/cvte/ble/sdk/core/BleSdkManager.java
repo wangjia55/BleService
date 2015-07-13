@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+
 import de.greenrobot.event.EventBus;
 
 /**
@@ -71,11 +72,11 @@ public class BleSdkManager implements BleOperationListener {
             int blueState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0);
             switch (blueState) {
                 case BluetoothAdapter.STATE_ON:
-                    BleLogUtils.LOGE(TAG, "Bluetooth_On");
+                    BleLogUtils.LOGE(TAG, "****************************Bluetooth_On");
                     mBluetoothState = BluetoothState.Bluetooth_On;
                     break;
                 case BluetoothAdapter.STATE_OFF:
-                    BleLogUtils.LOGE(TAG, "Bluetooth_Off");
+                    BleLogUtils.LOGE(TAG, "****************************Bluetooth_Off");
                     mScanState = ScanState.ScanStop;
                     mBluetoothState = BluetoothState.Bluetooth_Off;
                     break;
@@ -114,6 +115,7 @@ public class BleSdkManager implements BleOperationListener {
         }
     }
 
+
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     public void startScan() {
@@ -137,7 +139,7 @@ public class BleSdkManager implements BleOperationListener {
                 break;
             }
         }
-        BleLogUtils.LOGE(TAG, "map size:" + size + "/**/" + hasConnect);
+        BleLogUtils.LOGE(TAG, "map size:" + size + "--- hasConnect : " + hasConnect);
         return size > 0 && !hasConnect;
     }
 
@@ -217,7 +219,7 @@ public class BleSdkManager implements BleOperationListener {
             if (bleConnectDevice != null) {
                 bleConnectDevice.getGoogleBle().write(BleCommand.getVerifyCommand(bleConnectInfo.getVerifyCommand()));
             }
-            EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BleState.CONNECTED, bleConnectInfo);
+            EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.CONNECTED, bleConnectInfo);
             EventBus.getDefault().post(eventBleDevice);
             startAlertActivity(eventBleDevice);
         }
@@ -225,14 +227,14 @@ public class BleSdkManager implements BleOperationListener {
         @Override
         public void onDeviceFound(BleConnectInfo bleConnectInfo, BluetoothDevice bluetoothDevice) {
             BleLogUtils.LOGE(TAG, "onDeviceFound--:" + bleConnectInfo.getSingleTag());
-            EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BleState.DEVICE_FOUND, bleConnectInfo);
+            EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.DEVICE_FOUND, bleConnectInfo);
             EventBus.getDefault().post(eventBleDevice);
         }
 
         @Override
         public void onConnectError(BleConnectInfo bleConnectInfo, int errorCode, String reason) {
             BleLogUtils.LOGE(TAG, "onConnectError--:" + bleConnectInfo.getSingleTag() + "//" + reason);
-            EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BleState.DISCONNECT, bleConnectInfo);
+            EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.DISCONNECT, bleConnectInfo);
             EventBus.getDefault().post(eventBleDevice);
             startAlertActivity(eventBleDevice);
         }
@@ -276,5 +278,4 @@ public class BleSdkManager implements BleOperationListener {
         }
         mAllDeviceMap.clear();
     }
-
 }

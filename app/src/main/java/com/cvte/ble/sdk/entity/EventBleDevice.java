@@ -10,28 +10,26 @@ import java.io.Serializable;
  */
 public class EventBleDevice implements Serializable {
 
-    public enum BleState {
-        DEVICE_FOUND,
-        DISCONNECT,
-        CONNECTED,
-    }
+    public static final int DEVICE_FOUND = 1;
+    public static final int CONNECTED = 2;
+    public static final int DISCONNECT = 3;
 
     /**
      * 当前状态
      */
-    private BleState bleState;
+    private int bleState;
 
     /**
      * 指定的蓝牙设备
      */
     private BleConnectInfo bleConnectInfo;
 
-    public EventBleDevice(BleState bleState, BleConnectInfo bleConnectInfo) {
+    public EventBleDevice(int bleState, BleConnectInfo bleConnectInfo) {
         this.bleState = bleState;
         this.bleConnectInfo = bleConnectInfo;
     }
 
-    public BleState getBleState() {
+    public int getBleState() {
         return bleState;
     }
 
