@@ -78,6 +78,17 @@ public class MainActivity extends FragmentActivity {
         startActivityForResult(intent, REQUEST_ADD_DEVICE);
     }
 
+    public void clearData(View view) {
+        getSharedPreferences("BLE_SERVICE", MODE_PRIVATE).edit().putString("ble", "").commit();
+        BleSdkManager.newInstance(this).clearAll();
+        int count = mLinearLayout.getChildCount();
+        for (int i = 0; i < count; i++) {
+            BleStatusView statusView = (BleStatusView) mLinearLayout.getChildAt(i);
+            statusView.setStatus("已断开");
+        }
+
+    }
+
     @Override
     protected void onResume() {
         super.onResume();

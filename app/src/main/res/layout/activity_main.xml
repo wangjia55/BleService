@@ -29,6 +29,12 @@
             android:onClick="addDevice"
             android:text="添加设备"/>
 
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:onClick="clearData"
+            android:text="清除数据"/>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"

@@ -12,4 +12,9 @@ public class BleSdkConfig {
      * 蓝牙扫描的时常
      */
     public static int SCAN_TIME = 20 * 1000;
+
+    /**
+     * 当蓝牙断开后并且过了10s还处于断开的状态就会提示
+     */
+    public static int BLE_ALERT_DALEY_WHEN_DISCONNECT = 15 * 1000;
 }

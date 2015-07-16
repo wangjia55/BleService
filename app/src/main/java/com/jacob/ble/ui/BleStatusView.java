@@ -75,10 +75,10 @@ public class BleStatusView extends LinearLayout implements View.OnClickListener 
         String state = "";
         switch (connectState) {
             case Connected:
-                state = " 已经连接";
+                state = " 已连接";
                 break;
             case Disconnect:
-                state = " 已经断开";
+                state = " 已断开";
                 break;
         }
         mTextViewState.setText(state);

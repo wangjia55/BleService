@@ -43,7 +43,7 @@ public class GoogleBle {
     private static final int MSG_CONNECT_SUCCESS = 0x11227;
     private static final int MSG_RSSI_READ_SUCCESS = 0x11228;
     private static final int MSG_RSSI_READ_ERROR = 0x11229;
-    private static final int CONNECTION_CHECK_TIME = 15 * 1000;
+    private static final int CONNECTION_CHECK_TIME = 25 * 1000;
     private static final String PARAM_RSSI = "rssi";
     private static final String PARAM_BYTE = "byte";
     private static final String PARAM_ERROR_CODE = "code";
@@ -194,7 +194,7 @@ public class GoogleBle {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 BleLogUtils.LOGD(TAG, "connected to GATT server and discovery service");
                 mBluetoothGatt.discoverServices();
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED){
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 BleLogUtils.LOGD(TAG, "connection state change disconnect" + "gatt status " + status + " bluetoothProfile new State " + newState);
                 disconnect();
                 mHandler.removeMessages(MSG_CONNECTION_CHECK);
@@ -291,6 +291,9 @@ public class GoogleBle {
 
     public void dispose() {
         disconnect();
+        if (mBleConnectCallback != null) {
+            mBleConnectCallback.onConnectError(mBleConnectInfo, ErrorStatus.DISCONNECT_BY_USER, "Disconnect handly");
+        }
         mContext.unregisterReceiver(mBlueStateBroadcastReceiver);
         mBluetoothManager = null;
         mBluetoothGatt = null;
@@ -330,13 +333,10 @@ public class GoogleBle {
         mHandler.sendEmptyMessageDelayed(MSG_CONNECTION_CHECK, CONNECTION_CHECK_TIME);
     }
 
-    public void disconnect() {
+    private void disconnect() {
         if (mBluetoothGatt != null) {
             mBluetoothGatt.close();
             mBluetoothGatt = null;
-        }
-        if (mBleConnectCallback != null) {
-            mBleConnectCallback.onConnectError(mBleConnectInfo, ErrorStatus.GATT_FAIL, "Disconnect");
         }
         mConnectState = ConnectState.Disconnect;
     }

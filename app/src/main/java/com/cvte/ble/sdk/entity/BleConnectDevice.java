@@ -28,6 +28,11 @@ public class BleConnectDevice {
      */
     private BleConnectInfo bleConnectInfo;
 
+    /**
+     * 上次的连接状态
+     */
+    private ConnectState mLastConnectState = ConnectState.Disconnect;
+
 
     public BleConnectDevice(Context context, BleConnectInfo bleConnectInfo) {
         singleTag = bleConnectInfo.getSingleTag();
@@ -49,5 +54,21 @@ public class BleConnectDevice {
 
     public ConnectState getConnectState() {
         return googleBle.getConnectState();
+    }
+
+    public ConnectState getLastConnectState() {
+        return mLastConnectState;
+    }
+
+    public void recordLastConnectState() {
+        mLastConnectState = getConnectState();
+    }
+
+    @Override
+    public String toString() {
+        return "BleConnectDevice{" +
+                "singleTag='" + singleTag + '\'' +
+                ", mLastConnectState=" + mLastConnectState +
+                '}';
     }
 }
