@@ -364,8 +364,8 @@ public class GoogleBle {
         mBleWriteCallback = bleWriteCallback;
     }
 
-    public synchronized void write(byte[] bytes) {
-
+    public synchronized void write(byte[] bytes, BleWriteCallback bleWriteCallback) {
+        mBleWriteCallback = bleWriteCallback;
         if (mBluetoothState == BluetoothState.Bluetooth_Off) {
             if (mBleWriteCallback != null) {
                 mBleWriteCallback.onWriteFail(ErrorStatus.BLUETOOTH_NO_OPEN, "bluetooth is no open");

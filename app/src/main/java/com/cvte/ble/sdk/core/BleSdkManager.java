@@ -8,8 +8,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -25,10 +25,10 @@ import com.cvte.ble.sdk.states.BluetoothState;
 import com.cvte.ble.sdk.states.ConnectState;
 import com.cvte.ble.sdk.states.ScanState;
 import com.cvte.ble.sdk.utils.BleLogUtils;
-import com.jacob.ble.ui.BleAlertActivity;
-import com.jacob.ble.utils.LogUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,15 +42,18 @@ import de.greenrobot.event.EventBus;
  */
 public class BleSdkManager implements BleOperationListener {
     public static final String TAG = "BleSdkManager";
-    public static final int MSG_DISCONNECT_AND_RESEARCH = 100;
+    public static final String FILE_NAME = "CVTE_BLE_SDK";
+    public static final String FILE_KEY = "BLE_SERVICE";
+    private SharedPreferences mSharedPreference;
 
     private boolean isConnectFinish = true;
     private static BleSdkManager sInstance = null;
     private ScanState mScanState = ScanState.ScanStop;
     private BluetoothState mBluetoothState = BluetoothState.Bluetooth_Off;
-    private static Map<String, BleConnectDevice> mAllDeviceMap = new HashMap<>();
+    private  Map<String, BleConnectDevice> mAllDeviceMap = new HashMap<String, BleConnectDevice>();
+    private Map<String, Runnable> mDisconnectRunnableMap = new HashMap<String, Runnable>();
 
-    private static Context mContext;
+    private Context mContext;
     private static BleSdkHandler sHandler;
     private static HandlerThread sHandlerThread = new HandlerThread("BleSDKThread");
     private BluetoothManager mBluetoothManager;
@@ -79,37 +82,31 @@ public class BleSdkManager implements BleOperationListener {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            switch (msg.what) {
-                case MSG_DISCONNECT_AND_RESEARCH:
-                    String tag = (String) msg.obj;
-                    BleConnectDevice bleConnectDevice = mAllDeviceMap.get(tag);
-                    if (bleConnectDevice != null && (bleConnectDevice.getConnectState() == ConnectState.Disconnect)) {
-                        //给出提示
-                        EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.DISCONNECT,
-                                bleConnectDevice.getBleConnectInfo());
-                        EventBus.getDefault().post(eventBleDevice);
-
-                        //清除当前设备中的记录的连接信息
-                        startAlertActivity(eventBleDevice);
-                    }
-                    break;
-            }
         }
     }
 
+    /**
+     * 蓝牙状态改变广播
+     */
     private BroadcastReceiver mBlueStateBroadcastReceiver = new BroadcastReceiver() {
 
         @Override
         public void onReceive(Context context, Intent intent) {
             int blueState = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0);
             switch (blueState) {
-                case BluetoothAdapter.STATE_ON:
+                case BluetoothAdapter.STATE_ON: {
                     mBluetoothState = BluetoothState.Bluetooth_On;
-                    break;
-                case BluetoothAdapter.STATE_OFF:
+                    EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BLUETOOTH_ON, null);
+                    EventBus.getDefault().post(eventBleDevice);
+                }
+                break;
+                case BluetoothAdapter.STATE_OFF: {
                     mScanState = ScanState.ScanStop;
                     mBluetoothState = BluetoothState.Bluetooth_Off;
-                    break;
+                    EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.BLUETOOTH_OFF, null);
+                    EventBus.getDefault().post(eventBleDevice);
+                }
+                break;
                 default:
                     break;
             }
@@ -151,6 +148,7 @@ public class BleSdkManager implements BleOperationListener {
                 mBluetoothState = BluetoothState.Bluetooth_Off;
             }
         }
+        mSharedPreference = mContext.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE);
     }
 
     /**
@@ -159,11 +157,10 @@ public class BleSdkManager implements BleOperationListener {
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     public void startScan() {
-        if (isNeedStartScan()) {
+        if (isNeedScanBle()) {
             BleLogUtils.LOGE(TAG, "startScan");
             mScanState = ScanState.Scanning;
-            if (mBluetoothAdapter != null &&
-                    mBluetoothState == BluetoothState.Bluetooth_On) {
+            if (mBluetoothAdapter != null) {
                 mBluetoothAdapter.startLeScan(mBleScanCallback);
             }
         }
@@ -172,7 +169,7 @@ public class BleSdkManager implements BleOperationListener {
     /**
      * 判断是否需要扫描蓝牙，比如：当前的设备已经全部处于连接上的状态时，是不需要扫描蓝牙的
      */
-    private boolean isNeedStartScan() {
+    private boolean isNeedScanBle() {
         int size = mAllDeviceMap.size();
         boolean hasConnect = true;
         Set<String> keySet = mAllDeviceMap.keySet();
@@ -200,7 +197,7 @@ public class BleSdkManager implements BleOperationListener {
     }
 
     /**
-     * 连接某个指定的蓝牙设备,支持多个设备同时连接
+     * 连接某个指定的蓝牙设备,支持多个设备同时连接（将设备添加到搜索队列中，同时需要更新缓存在文件的信息）
      */
     @Override
     public void connectBleDevice(BleConnectInfo bleConnectInfo) {
@@ -220,10 +217,13 @@ public class BleSdkManager implements BleOperationListener {
     }
 
     /**
-     * 取消连接某个蓝牙设备
+     * 取消连接某个蓝牙设备（将设备从搜索队列中移除，同时需要更新缓存在文件的信息）
      */
     @Override
     public void disConnectBleDevice(BleConnectInfo bleConnectInfo) {
+        if (bleConnectInfo == null) {
+            return;
+        }
         BleLogUtils.LOGE(TAG, "disConnectBleDevice");
         BleConnectDevice bleConnectDevice = mAllDeviceMap.get(bleConnectInfo.getSingleTag());
         mAllDeviceMap.remove(bleConnectInfo.getSingleTag());
@@ -236,17 +236,43 @@ public class BleSdkManager implements BleOperationListener {
     }
 
     /**
+     * 将设备从Map队列中删除，并不处理移除设备中的各种状态
+     */
+    @Override
+    public void removeConnectBleDevice(BleConnectInfo bleConnectInfo) {
+        if (bleConnectInfo == null) {
+            return;
+        }
+        mAllDeviceMap.remove(bleConnectInfo.getSingleTag());
+        if (mDeviceSizeChangeListener != null) {
+            mDeviceSizeChangeListener.onDeviceSizeChange(mAllDeviceMap);
+        }
+    }
+
+    /**
      * 获取某个指定设备当前的连接状态
      */
     @Override
-    public ConnectState getDeviceState(BleConnectInfo bleConnectInfo) {
-        if (bleConnectInfo == null) return ConnectState.Disconnect;
+    public ConnectState getDeviceState(String singleTag) {
+        if (singleTag == null || "".equals(singleTag))
+            return ConnectState.Disconnect;
 
-        BleConnectDevice bleConnectDevice = mAllDeviceMap.get(bleConnectInfo.getSingleTag());
+        BleConnectDevice bleConnectDevice = mAllDeviceMap.get(singleTag);
         if (bleConnectDevice != null) {
             return bleConnectDevice.getConnectState();
         }
         return ConnectState.Disconnect;
+    }
+
+    /**
+     * 根据唯一的Tag，获取当前扫描队列中的某个设备
+     */
+    @Override
+    public BleConnectDevice getBleConnectDevice(String singleTag) {
+        if (mAllDeviceMap != null && mAllDeviceMap.size() > 0) {
+            return mAllDeviceMap.get(singleTag);
+        }
+        return null;
     }
 
     /**
@@ -289,21 +315,12 @@ public class BleSdkManager implements BleOperationListener {
             //重新进行扫描
             sHandler.removeCallbacks(mScanDeviceRunnable);
             sHandler.post(mScanDeviceRunnable);
-
-
-            //连接成功后，记录BleConnectDevice中的一些数据（是否连接／连接失败次数）
+            mDisconnectRunnableMap.remove(bleConnectInfo.getSingleTag());
             BleConnectDevice bleConnectDevice = mAllDeviceMap.get(bleConnectInfo.getSingleTag());
             if (bleConnectDevice != null) {
-                bleConnectDevice.getGoogleBle().write(BleCommand.getVerifyCommand(bleConnectInfo.getVerifyCommand()));
-
+                bleConnectDevice.getGoogleBle().write(BleCommand.getVerifyCommand(bleConnectInfo.getVerifyCommand()), null);
                 EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.CONNECTED, bleConnectInfo);
                 EventBus.getDefault().post(eventBleDevice);
-
-                LogUtils.LOGE("wangjia:", bleConnectDevice.toString());
-                if (bleConnectDevice.getLastConnectState() == ConnectState.Disconnect) {
-                    startAlertActivity(eventBleDevice);
-                }
-
                 bleConnectDevice.recordLastConnectState();
             }
         }
@@ -326,38 +343,41 @@ public class BleSdkManager implements BleOperationListener {
 
             BleLogUtils.LOGE(TAG, "onConnectError--:" + bleConnectInfo.getSingleTag() + "--reason:" + reason);
             BleConnectDevice bleConnectDevice = mAllDeviceMap.get(bleConnectInfo.getSingleTag());
-            LogUtils.LOGE("bleConnectDevice==null:", "" + (bleConnectDevice == null));
             if (bleConnectDevice != null) {
                 //延迟一定时间再次检查这个设备是否已经连接，如果没有连接给出断开提示
-                Message message = sHandler.obtainMessage();
-                message.what = MSG_DISCONNECT_AND_RESEARCH;
-                message.obj = bleConnectInfo.getSingleTag();
-                sHandler.sendMessageDelayed(message, BleSdkConfig.BLE_ALERT_DALEY_WHEN_DISCONNECT);
-
-                LogUtils.LOGE("wangjia:", bleConnectDevice.toString());
-                if (bleConnectDevice.getLastConnectState() != ConnectState.Connected) {
-                    //给出提示
-                    EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.DISCONNECT, bleConnectInfo);
-                    EventBus.getDefault().post(eventBleDevice);
-
-                    //清除当前设备中的记录的连接信息
-                    startAlertActivity(eventBleDevice);
+                if (mDisconnectRunnableMap.containsKey(bleConnectInfo.getSingleTag())) {
+                    sHandler.removeCallbacks(mDisconnectRunnableMap.get(bleConnectInfo.getSingleTag()));
                 }
-
+                BleRunnable bleRunnable = new BleRunnable(bleConnectInfo.getSingleTag());
+                mDisconnectRunnableMap.put(bleConnectInfo.getSingleTag(), bleRunnable);
+                sHandler.postDelayed(bleRunnable, BleSdkConfig.BLE_ALERT_DALEY_WHEN_DISCONNECT);
                 bleConnectDevice.recordLastConnectState();
             }
         }
     };
 
+    private class BleRunnable implements Runnable {
 
-    private static void startAlertActivity(EventBleDevice eventBleDevice) {
-        Intent intent = new Intent(mContext, BleAlertActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        Bundle bundle = new Bundle();
-        bundle.putSerializable("eventDevice", eventBleDevice);
-        intent.putExtras(bundle);
-        mContext.startActivity(intent);
+        private String singleTag;
+
+        public BleRunnable(String tag) {
+            this.singleTag = tag;
+        }
+
+        @Override
+        public void run() {
+            BleConnectDevice bleConnectDevice = mAllDeviceMap.get(singleTag);
+            if (bleConnectDevice != null) {
+                //给出提示
+                EventBleDevice eventBleDevice = new EventBleDevice(EventBleDevice.DISCONNECT,
+                        bleConnectDevice.getBleConnectInfo());
+                EventBus.getDefault().post(eventBleDevice);
+                sHandler.removeCallbacks(this);
+                mDisconnectRunnableMap.remove(singleTag);
+            }
+        }
     }
+
 
     private Runnable mScanDeviceRunnable = new Runnable() {
         @Override
@@ -371,16 +391,17 @@ public class BleSdkManager implements BleOperationListener {
     };
 
 
+    /**
+     * 获取当前的蓝牙状态
+     */
     @Override
     public BluetoothState getBluetoothState() {
         return mBluetoothState;
     }
 
-    @Override
-    public ScanState getScanState() {
-        return mScanState;
-    }
-
+    /**
+     * 获取当前的蓝牙扫描队列集合的设备个数
+     */
     @Override
     public int getDeviceSize() {
         if (mAllDeviceMap == null) {
@@ -389,29 +410,56 @@ public class BleSdkManager implements BleOperationListener {
         return mAllDeviceMap.size();
     }
 
+    /**
+     * 获取当前的蓝牙扫描队列集合
+     */
     @Override
     public Map<String, BleConnectDevice> getDeviceMap() {
         return mAllDeviceMap;
     }
 
+    /**
+     * 断开并清楚所有的设备信息，同时将文件中缓存数据也清除
+     */
     @Override
-    public void clearAll() {
+    public void disConnectAll() {
         stopScan();
+        setCacheDeviceInfo("");
         sHandler.removeCallbacks(mScanDeviceRunnable);
-        sHandler.removeMessages(MSG_DISCONNECT_AND_RESEARCH);
+        List<BleConnectDevice> bleConnectDeviceList = new ArrayList<BleConnectDevice>();
         Set<String> keySet = mAllDeviceMap.keySet();
         for (String tag : keySet) {
             BleConnectDevice bleConnectDevice = mAllDeviceMap.get(tag);
-            if (bleConnectDevice != null) {
-                bleConnectDevice.getGoogleBle().dispose();
-            }
+            bleConnectDeviceList.add(bleConnectDevice);
         }
         mAllDeviceMap.clear();
+        for (BleConnectDevice bleConnectDevice : bleConnectDeviceList) {
+            bleConnectDevice.getGoogleBle().dispose();
+        }
+        bleConnectDeviceList.clear();
+        mDisconnectRunnableMap.clear();
     }
-
 
     public void setOnDeviceSizeChangeListener(BleDeviceChangeListener listener) {
         this.mDeviceSizeChangeListener = listener;
     }
 
+
+    /**
+     * 将搜索队列中的设备信息写入到文件中进行缓存
+     */
+    public void setCacheDeviceInfo(String info) {
+        if (mSharedPreference != null)
+            mSharedPreference.edit().putString(FILE_KEY, info).commit();
+    }
+
+    /**
+     * 将文件中缓存的设备信息读出加入到搜索队列中
+     */
+    public String reloadCacheDeviceInfo() {
+        if (mSharedPreference != null) {
+            return mSharedPreference.getString(FILE_KEY, "");
+        }
+        return "";
+    }
 }

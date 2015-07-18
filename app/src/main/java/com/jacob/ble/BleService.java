@@ -4,7 +4,6 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
@@ -36,11 +35,9 @@ import java.util.concurrent.TimeUnit;
  * Description : 这个类是用来xxx
  */
 public class BleService extends Service {
-    public static final String NAME = "BLE_SERVICE";
     public static boolean isRunning = false;
     public static final String TAG = "BleService";
     private ScheduledExecutorService mBackgroundService;
-    private SharedPreferences mSharedPreference;
     private BleSdkManager mBleSdkManager = BleSdkManager.newInstance(this);
 
     @Override
@@ -58,7 +55,6 @@ public class BleService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         LogUtils.LOGE(TAG, "onStartCommand");
         if (!isRunning) {
-            mSharedPreference = getSharedPreferences(NAME, MODE_PRIVATE);
             mBleSdkManager.init();
             mBleSdkManager.registerBleStateReceiver();
             mBleSdkManager.setOnDeviceSizeChangeListener(sizeChangeListener);
@@ -87,12 +83,12 @@ public class BleService extends Service {
                 bleDevice.setImsi(connectDevice.getBleConnectInfo().getSingleTag());
                 jsonArray.put(new Gson().toJson(bleDevice));
             }
-            mSharedPreference.edit().putString("ble", jsonArray.toString()).commit();
+            mBleSdkManager.setCacheDeviceInfo(jsonArray.toString());
         }
     };
 
     private void reloadBleService() {
-        String bleInfo = mSharedPreference.getString("ble", "");
+        String bleInfo = mBleSdkManager.reloadCacheDeviceInfo();
         LogUtils.LOGE("bleinfo:", bleInfo);
         if ("".equals(bleInfo)) {
             return;

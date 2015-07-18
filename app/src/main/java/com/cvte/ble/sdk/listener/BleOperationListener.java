@@ -4,7 +4,6 @@ import com.cvte.ble.sdk.entity.BleConnectDevice;
 import com.cvte.ble.sdk.entity.BleConnectInfo;
 import com.cvte.ble.sdk.states.BluetoothState;
 import com.cvte.ble.sdk.states.ConnectState;
-import com.cvte.ble.sdk.states.ScanState;
 
 import java.util.Map;
 
@@ -34,17 +33,13 @@ public interface BleOperationListener {
     /**
      * 清除所有缓存的设备信息，一般用于退出蓝牙操作
      */
-    void clearAll();
+    void disConnectAll();
 
     /**
      * 获取当前蓝牙的状态
      */
     BluetoothState getBluetoothState();
 
-    /**
-     * 获取当前扫描蓝牙的状态
-     */
-    ScanState getScanState();
 
     /**
      * 获取当前队列中的设备个数
@@ -76,8 +71,19 @@ public interface BleOperationListener {
      */
     void disConnectBleDevice(BleConnectInfo bleConnectInfo);
 
+
+    /**
+     *  从缓存的数据中删除某个设备
+     */
+    void removeConnectBleDevice(BleConnectInfo bleConnectInfo);
+
     /**
      * 获取某个指定设备当前的连接状态
      */
-    ConnectState getDeviceState(BleConnectInfo bleConnectInfo);
+    ConnectState getDeviceState(String singleTag);
+
+    /**
+     * 获取某个指定设备
+     */
+    BleConnectDevice getBleConnectDevice(String singleTag);
 }

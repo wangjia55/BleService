@@ -13,6 +13,8 @@ public class EventBleDevice implements Serializable {
     public static final int DEVICE_FOUND = 1;
     public static final int CONNECTED = 2;
     public static final int DISCONNECT = 3;
+    public static final int BLUETOOTH_OFF = 4;
+    public static final int BLUETOOTH_ON = 5;
 
     /**
      * 当前状态

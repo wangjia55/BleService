@@ -16,5 +16,5 @@ public class BleSdkConfig {
     /**
      * 当蓝牙断开后并且过了10s还处于断开的状态就会提示
      */
-    public static int BLE_ALERT_DALEY_WHEN_DISCONNECT = 15 * 1000;
+    public static int BLE_ALERT_DALEY_WHEN_DISCONNECT = 10 * 1000;
 }

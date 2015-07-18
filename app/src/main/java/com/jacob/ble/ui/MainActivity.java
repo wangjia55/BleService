@@ -47,7 +47,7 @@ public class MainActivity extends FragmentActivity {
                 bleStatusView.setBleDevice(bleDevice);
                 bleStatusView.setTag(bleDevice.getImsi());
                 bleStatusView.setOnBleMenuListener(mBleMenuListener);
-                bleStatusView.setStatus(bleSdkManager.getDeviceState(new TrackerConnectInfo(bleDevice.getImsi(), bleDevice.getImsi())));
+                bleStatusView.setStatus(bleSdkManager.getDeviceState(bleDevice.getImsi()));
                 mLinearLayout.addView(bleStatusView);
             }
         }
@@ -80,7 +80,7 @@ public class MainActivity extends FragmentActivity {
 
     public void clearData(View view) {
         getSharedPreferences("BLE_SERVICE", MODE_PRIVATE).edit().putString("ble", "").commit();
-        BleSdkManager.newInstance(this).clearAll();
+        BleSdkManager.newInstance(this).disConnectAll();
         int count = mLinearLayout.getChildCount();
         for (int i = 0; i < count; i++) {
             BleStatusView statusView = (BleStatusView) mLinearLayout.getChildAt(i);
